@@ -8,9 +8,6 @@ using JuMP, FactCheck, JAMSDWriter
  #  The optimal objective value is 0
  ##
 
-# Allow resolving the model from multiple starts after NLP changes in JuMP 0.12
-EnableNLPResolve()
-
 if !isdefined(:solver); solver = JAMSDWriter.JAMSDSolver(); end
 
 m = Model(solver=solver)

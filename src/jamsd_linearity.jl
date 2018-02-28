@@ -215,7 +215,7 @@ negate(c::LinearityExpr) = multiply(c::LinearityExpr, -1)
 function multiply(c::LinearityExpr, a::Real)
     if isa(c.c, Expr) && c.c.head == :call
         @assert c.c.args[1] == :+
-        map!(arg -> multiply(arg, a), c.c.args[2:end])
+        map!(arg -> multiply(arg, a), c.c.args[2:end], c.c.args[2:end])
     elseif c.linearity == :const
         c.c *= a
     else

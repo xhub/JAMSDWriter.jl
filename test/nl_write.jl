@@ -3,13 +3,13 @@ facts("[nl_write] Temp file handling") do
     old_debug = JAMSDWriter.CONFIG[:debug]
     JAMSDWriter.setdebug(true)
 
-    filename = "test"
-    filepath = joinpath(JAMSDWriter.solverdata_dir, filename)
-    JAMSDWriter.clean_solverdata()
+#    filename = "test"
+#    filepath = joinpath(JAMSDWriter.solverdata_dir, filename)
+#    JAMSDWriter.clean_solverdata()
 
-    context("all temp files deleted successfully") do
-        @fact length(readdir(JAMSDWriter.solverdata_dir)) --> 1
-    end
+#    context("all temp files deleted successfully") do
+#        @fact length(readdir(JAMSDWriter.solverdata_dir)) --> 1
+#    end
 
     solver = JAMSDWriter.JAMSDSolver()
     m = Model(solver=solver)

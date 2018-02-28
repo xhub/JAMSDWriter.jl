@@ -15,6 +15,9 @@ function jamsd_reg_eqns(ctx, m::JAMSDMathProgModel, equil=false)
 
     if m.ncon > 0 || length(m.quad_equs) > 0
 #        write_nl_k_block(f, m)
+        if length(m.nonquad_idx) != m.ncon
+            error("The number of constraint and the equation index do not match")
+        end
         jamsd_add_cons_lin(ctx, m, obj_offset)
         jamsd_add_cons_nl(ctx, m, obj_offset)
         jamsd_add_cons_quad(ctx, m, obj_offset)
@@ -60,7 +63,9 @@ function jamsd_add_cons_nl(ctx, m::JAMSDMathProgModel, offset)
             eidx = m.nonquad_idx[idx] + offset - 1 + m.offset
             tree, node = jamsd_get_treedata(ctx, eidx)
             CONFIG[:debug] && println("jamsd_add_cons_nl: storing expression $(eidx)")
-            jamsd_add_nlexpr(ctx, tree, node, m, m.constrs[idx])
+            if m.constrs[idx] != 0.
+                jamsd_add_nlexpr(ctx, tree, node, m, m.constrs[idx])
+            end
         end
     end
 end
@@ -83,12 +88,12 @@ function jamsd_quad(ctx, m::JAMSDMathProgModel, idx, equ, offset, isObj::Bool=fa
     # we don't construct the dict directly, since it may have duplicate values
     ##########################################################################
 
-    lin_dict = Dict(zip(lidx, repeated(0.)))
+    lin_dict = Dict(zip(lidx, Iterators.repeated(0.)))
     for i in 1:length(lidx)
         lin_dict[lidx[i]] += lval[i]
     end
 
-    quad_dict = Dict(zip(zip(rowidx, colidx), repeated(0.)))
+    quad_dict = Dict(zip(zip(rowidx, colidx), Iterators.repeated(0.)))
 
     ###########################################################################
     # MPB is a bit insane here: via setquadobj! it provides a triangular matrix
@@ -190,7 +195,9 @@ function jamsd_add_obj_nl(ctx, m::JAMSDMathProgModel)
     # Get tree, node, ...
     tree, node = jamsd_get_treedata(ctx, m.offset)
     CONFIG[:debug] && println("jamsd_add_obj_nl: storing expression $(m.offset)")
-    jamsd_add_nlexpr(ctx, tree, node, m, m.obj)
+    if m.obj != 0.
+        jamsd_add_nlexpr(ctx, tree, node, m, m.obj)
+    end
 end
 
 # Initial primal guesses
@@ -243,7 +250,7 @@ function jamsd_declare_var(ctx, vtype, lower, upper)
         elseif upper == 0
             jamsd_add_neg_var(ctx, 1)
         else
-            jamsd_add_var(ctx, lower, upper)
+            jamsd_add_box_var(ctx, lower, upper)
         end
     else
         if lower == upper
@@ -277,6 +284,11 @@ function jamsd_declare_vars(ctx, m::JAMSDMathProgModel)
         lower = m.x_l[i]
         upper = m.x_u[i]
         jamsd_declare_var(ctx, m.vartypes[i], lower, upper)
+    end
+
+    # Set variable names
+    if m.d.hasvalue
+        ctx_setvarnames(ctx, m.d.value.m.colNames)
     end
 end
 
@@ -363,9 +375,9 @@ jamsd_add_nlexpr(ctx, tree, node, m, c::Symbol) =  jamsd_add_nlexpr(ctx, tree, n
 
 # write down constant
 function jamsd_add_nlexpr(ctx, tree, node, m, c::Real)
-    if abs(c) > 0.
+#    if abs(c) > 0.
         equtree_cst(ctx, tree, node, c)
-    end
+#    end
 end
 
 jamsd_add_nlexpr(ctx, tree, node, m, c::LinearityExpr) = jamsd_add_nlexpr(ctx, tree, node, m, c.c)
@@ -376,7 +388,7 @@ function jamsd_add_nlexpr(ctx, tree, node, m, c::Expr)
         # This is a variable
         if c.args[1] == :x
             @assert isa(c.args[2], Int)
-            info = equtree_var(ctx, tree, node, m.v_index_map[c.args[2]], 1.)
+            equtree_var(ctx, tree, node, m.v_index_map[c.args[2]], 1.)
         else
             error("Unrecognized reference expression $c")
         end

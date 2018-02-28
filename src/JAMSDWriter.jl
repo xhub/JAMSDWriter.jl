@@ -4,9 +4,15 @@ module JAMSDWriter
 using MathProgBase
 importall MathProgBase.SolverInterface
 
-const CONFIG = Dict(:debug => false)
+const CONFIG = Dict(
+:debug => false,
+:export_gms => false,
+:solver_log => false
+)
 
 setdebug(b::Bool) = global CONFIG[:debug] = b
+setexport(b::Bool) = global CONFIG[:export_gms] = b
+setsolverlog(b::Bool) = global CONFIG[:solver_log] = b
 
 solverdata_dir = joinpath(Pkg.dir("JAMSDWriter"), ".solverdata")
 
@@ -56,10 +62,11 @@ model_stat = [
 export JAMSDSolver, getsolvername, getsolveresult, getsolveresultnum, getsolvemessage,
        getsolveexitcode, create_jamsd_ctx
 
-immutable JAMSDSolver <: AbstractMathProgSolver
+type JAMSDSolver <: AbstractMathProgSolver
     solver_name::String
     options::Vector{String}
     filename::String
+    emp::Nullable{Function}
 end
 
 # TODO(xhub) write a better struct/enum here
@@ -68,7 +75,7 @@ end
 function JAMSDSolver(solver_name::String="",
                      options::Vector{String}=String[];
                       filename::String="")
-    JAMSDSolver(solver_name, options, filename)
+    JAMSDSolver(solver_name, options, filename, Nullable{Function}())
 end
 
 getsolvername(s::JAMSDSolver) = basename(s.solver_name)
@@ -137,8 +144,10 @@ type JAMSDMathProgModel <: AbstractMathProgModel
 #    quad_obj::Tuple{Vector{Int}, Vector{Int}, Vector{Float64}}
     quad_obj::Tuple
     offset::Int
+    emp::Nullable{Function}
 
-    d::AbstractNLPEvaluator
+
+    d::Nullable{AbstractNLPEvaluator}
 
     jamsd_ctx::Ptr{context}
     jamsd_ctx_dest::Ptr{context}
@@ -146,7 +155,8 @@ type JAMSDMathProgModel <: AbstractMathProgModel
     function JAMSDMathProgModel(solver_name::String,
                                 options::Vector{String},
                                 filename::String,
-                                model_type::MODEL_TYPE)
+                                model_type::MODEL_TYPE,
+                                emp)
         new(options,
             solver_name,
             zeros(0),
@@ -188,7 +198,9 @@ type JAMSDMathProgModel <: AbstractMathProgModel
             model_type,
             Vector{Any}(),
             (),
-            0)
+            0,
+            emp,
+            Nullable{AbstractNLPEvaluator}())
     end
 end
 
@@ -205,10 +217,11 @@ end
 include("jamsd_write.jl")
 
 NonlinearModel(s::JAMSDSolver) = JAMSDNonlinearModel(
-    JAMSDMathProgModel(s.solver_name, s.options, s.filename, nlp)
+    JAMSDMathProgModel(s.solver_name, s.options, s.filename, nlp, s.emp)
 )
+
 LinearQuadraticModel(s::JAMSDSolver) = JAMSDLinearQuadraticModel(
-    JAMSDMathProgModel(s.solver_name, s.options, s.filename, qcp)
+    JAMSDMathProgModel(s.solver_name, s.options, s.filename, qcp, s.emp)
 )
 
 function ConicModel(s::JAMSDSolver)
@@ -224,11 +237,11 @@ function loadproblem!(outer::JAMSDNonlinearModel, nvar::Integer, ncon::Integer,
     loadcommon!(m, x_l, x_u, g_l, g_u, sense)
 
     m.d = d
-    initialize(m.d, [:ExprGraph])
+    initialize(m.d.value, [:ExprGraph])
 
     # Process constraints
     m.constrs = map(1:m.ncon) do i
-        c = constr_expr(m.d, i)
+        c = constr_expr(m.d.value, i)
 
         # Remove relations and bounds from constraint expressions
         if length(c.args) == 3
@@ -278,7 +291,7 @@ function loadproblem!(outer::JAMSDNonlinearModel, nvar::Integer, ncon::Integer,
     end
 
     # Process objective
-    m.obj = obj_expr(m.d)
+    m.obj = obj_expr(m.d.value)
     if length(m.obj.args) < 2
         m.obj = 0
     else
@@ -417,6 +430,10 @@ function optimize!(m::JAMSDMathProgModel)
         end
     end
 
+    if m.emp.hasvalue
+       return m.emp.value()
+    end
+
     make_var_index!(m)
     make_con_index!(m)
 
@@ -442,6 +459,65 @@ function optimize!(m::JAMSDMathProgModel)
         m.solve_result_num = 999
     end
 end
+
+function getconstrduals(m::JAMSDMathProgModel)
+
+    ctx = m.jamsd_ctx
+
+    x = Vector{Cdouble}(numconstr(m))
+
+   if has_objective(m)
+        offset = m.offset
+    else
+        offset = m.offset - 1
+    end
+
+    for idx in 1:m.ncon
+       eidx = m.nonquad_idx[idx] + offset
+       x[idx] = ctx_getmultiplierval(ctx, eidx)
+    end
+
+    return x
+end
+
+function getquadconstrduals(quadm::JAMSDLinearQuadraticModel)
+
+    m = quadm.inner
+    ctx = m.jamsd_ctx
+
+    x = Vector{Cdouble}(numconstr(m))
+
+    if has_objective(m)
+        offset = m.offset
+    else
+        offset = m.offset - 1
+    end
+
+    for (idx, equ) in enumerate(m.quad_equs)
+       eidx = m.quad_idx[idx] + offset
+       x[idx] = ctx_getmultiplierval(ctx, eidx)
+    end
+
+    return x
+end
+
+function getreducedcosts(m::JAMSDMathProgModel)
+
+    ctx = m.jamsd_ctx
+
+    x = Vector{Cdouble}(numvar(m))
+
+    for idx in 1:numvar(m)
+       x[idx] = ctx_getvarmult(ctx, idx-1)
+    end
+
+    return x
+end
+
+getreducedcosts(nlpm::JAMSDNonlinearModel) = getreducedcosts(nlpm.inner)
+getreducedcosts(quadm::JAMSDLinearQuadraticModel) = getreducedcosts(quadm.inner)
+getconstrduals(nlpm::JAMSDNonlinearModel) = getconstrduals(nlpm.inner)
+getconstrduals(quadm::JAMSDLinearQuadraticModel) = getconstrduals(quadm.inner)
 
 function process_expression!(nonlin_expr::Expr, lin_expr::Dict{Int, Float64},
                              varlinearities::Vector{Symbol})
@@ -516,38 +592,43 @@ add_constant(c, constant::Real) = c + constant
 add_constant(c::Expr, constant::Real) = Expr(:call, :+, c, constant)
 
 function make_var_index!(m::JAMSDMathProgModel)
-    nonlin_cont = Int[]
-    nonlin_int = Int[]
-    lin_cont = Int[]
-    lin_int = Int[]
-    lin_bin = Int[]
-
-    # TODO(xhub) we do that multiple times in the EMP context
-    for i in 1:length(m.vartypes)
-        if m.varlinearities_obj[i] == :Nonlin ||
-           m.varlinearities_con[i] == :Nonlin
-            if m.vartypes[i] == :Cont || m.vartypes[i] == :external
-                push!(nonlin_cont, i)
-            else
-                push!(nonlin_int, i)
-            end
-        else
-           if m.vartypes[i] == :Cont || m.vartypes[i] == :external
-                push!(lin_cont, i)
-            elseif m.vartypes[i] == :Int
-                push!(lin_int, i)
-            else
-                push!(lin_bin, i)
-            end
-        end
-    end
-
-    # Index variables in required order
-    for var_list in (nonlin_cont, nonlin_int, lin_cont, lin_bin, lin_int)
-        add_to_index_maps!(m.v_index_map, m.v_index_map_rev, var_list, 0)
-    end
-    CONFIG[:debug] && println("DEBUG: $(m.v_index_map)")
+    m.v_index_map = Dict(zip(1:m.nvar, 0:(m.nvar-1)))
+    m.v_index_map_rev = Dict(zip(0:(m.nvar-1), 1:m.nvar))
 end
+
+#function make_var_index!(m::JAMSDMathProgModel)
+#    nonlin_cont = Int[]
+#    nonlin_int = Int[]
+#    lin_cont = Int[]
+#    lin_int = Int[]
+#    lin_bin = Int[]
+#
+#    # TODO(xhub) we do that multiple times in the EMP context
+#    for i in 1:length(m.vartypes)
+#        if m.varlinearities_obj[i] == :Nonlin ||
+#           m.varlinearities_con[i] == :Nonlin
+#            if m.vartypes[i] == :Cont || m.vartypes[i] == :external
+#                push!(nonlin_cont, i)
+#            else
+#                push!(nonlin_int, i)
+#            end
+#        else
+#           if m.vartypes[i] == :Cont || m.vartypes[i] == :external
+#                push!(lin_cont, i)
+#            elseif m.vartypes[i] == :Int
+#                push!(lin_int, i)
+#            else
+#                push!(lin_bin, i)
+#            end
+#        end
+#    end
+#
+#    # Index variables in required order
+#    for var_list in (nonlin_cont, nonlin_int, lin_cont, lin_bin, lin_int)
+#        add_to_index_maps!(m.v_index_map, m.v_index_map_rev, var_list, 0)
+#    end
+#    CONFIG[:debug] && println("DEBUG: $(m.v_index_map)")
+#end
 
 function make_con_index!(m::JAMSDMathProgModel)
     nonlin_cons = Int[]
@@ -591,16 +672,15 @@ function add_to_index_maps!(forward_map::Dict{Int, Int},
     end
 end
 
-function report_results(m::JAMSDMathProgModel)
-    # TODO(Xhub) fix this hack
-    ccall((:model_eval_eqns, "libjamsd"), Cint, (Ptr{context}, Ptr{context}), m.jamsd_ctx, m.jamsd_ctx_dest)
-    # Next, read for the variable values
+function report_results_common(m::JAMSDMathProgModel)
     x = fill(NaN, m.nvar)
     m.objval = NaN
+
     for index in 0:(m.nvar - 1)
         i = m.v_index_map_rev[index]
         x[i] = ctx_getvarval(m.jamsd_ctx, index)
     end
+
     m.solution = x
 
     ###########################################################################
@@ -616,6 +696,7 @@ function report_results(m::JAMSDMathProgModel)
     # - :UserLimit (iteration limit or timeout)
     # - :Error (and maybe others)
     ###########################################################################
+
     tmpCint = Ref{Cint}(0)
     res = ccall((:ctx_getsolvestat, "libjamsd"), Cint, (Ptr{context}, Ref{Cint}), m.jamsd_ctx_dest, tmpCint)
     res != 0 && error("return code $res from JAMSD")
@@ -645,6 +726,15 @@ function report_results(m::JAMSDMathProgModel)
        elseif model_code == :Feasible
           # TODO investigate that. Baron is weird
           m.status = :Optimal
+       elseif model_code == :NoSolutionReturned
+          gams_solver = ctx_get_solvername(m.jamsd_ctx_dest)
+          m.status = :Optimal
+#          if gams_solver == "jams" || gams_solver == "JAMS"
+             # This is fine, we have a kludge in the code
+#          else
+#             println("JAMSD: Solve successed, but no solution was returned by solver $(gams_solver)!")
+#             m.status = :Error
+#          end
        else
           println("JAMSD: unhandle case: solver stat $(m.solve_result); model stat $(m.model_result)")
           m.status = :Error
@@ -670,14 +760,24 @@ function report_results(m::JAMSDMathProgModel)
     end
 
     CONFIG[:debug] && println("status is $(m.status)")
+ end
 
-    # TODO(xhub) this should not be necessary since
+
+function report_results(m::JAMSDMathProgModel)
+    # TODO(Xhub) fix this hack
+    res = ccall((:model_eval_eqns, "libjamsd"), Cint, (Ptr{context}, Ptr{context}), m.jamsd_ctx, m.jamsd_ctx_dest)
+    res != 0 && error("JAMSD: error code $res")
+
+    # Next, read for the variable values
+    report_results_common(m)
+
+    # TODO(xhub) this should not be necessary
     if m.solve_exitcode == 0
         if m.objlinearity == :Nonlin
             # Try to use NLPEvaluator if we can.
             # Can fail due to unsupported functions so fallback to eval
             try
-                m.objval = eval_f(m.d, m.solution)
+                m.objval = eval_f(m.d.value, m.solution)
                 return
             end
         end
@@ -731,7 +831,7 @@ end
 function evaluate_quad(rowidx, colidx, qvals, x::Array{Float64})
    n = length(x)
    mat = sparse(rowidx, colidx, qvals, n, n)
-   # This is soooo ugly
+   # This is soooo ugly --xhub
    Q = (mat + mat') - diagm(diag(mat))
    total = .5*x'*Q*x
    return total
@@ -757,6 +857,7 @@ function clean_solverdata()
 end
 
 include("jamsd_mathprgm.jl")
+include("jamsd_ovf.jl")
 include("jamsd_solve.jl")
 
 end
