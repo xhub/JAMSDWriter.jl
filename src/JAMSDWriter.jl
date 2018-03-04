@@ -62,9 +62,11 @@ model_stat = [
 export JAMSDSolver, getsolvername, getsolveresult, getsolveresultnum, getsolvemessage,
        getsolveexitcode, create_jamsd_ctx
 
+option_types = Union{Bool,Int,String,Cdouble}
+
 type JAMSDSolver <: AbstractMathProgSolver
     solver_name::String
-    options::Vector{String}
+    options::Dict{String,option_types}
     filename::String
     emp::Nullable{Function}
 end
@@ -73,7 +75,7 @@ end
 @enum MODEL_TYPE qcp=7 nlp=2 miqcp=6 minlp=5 emp=9
 
 function JAMSDSolver(solver_name::String="",
-                     options::Vector{String}=String[];
+                     options::Dict{String,option_types}=Dict{String,option_types}();
                       filename::String="")
     JAMSDSolver(solver_name, options, filename, Nullable{Function}())
 end
@@ -81,7 +83,7 @@ end
 getsolvername(s::JAMSDSolver) = basename(s.solver_name)
 
 type JAMSDMathProgModel <: AbstractMathProgModel
-    options::Vector{String}
+    options::Dict{String, option_types}
 
     solver_name::String
 
@@ -151,13 +153,14 @@ type JAMSDMathProgModel <: AbstractMathProgModel
 
     jamsd_ctx::Ptr{context}
     jamsd_ctx_dest::Ptr{context}
+    jamsd_options::Ptr{jamsd_options}
 
     function JAMSDMathProgModel(solver_name::String,
-                                options::Vector{String},
+                                options::Dict{String,option_types},
                                 filename::String,
                                 model_type::MODEL_TYPE,
                                 emp)
-        new(options,
+        o = new(options,
             solver_name,
             zeros(0),
             zeros(0),
@@ -200,7 +203,12 @@ type JAMSDMathProgModel <: AbstractMathProgModel
             (),
             0,
             emp,
-            Nullable{AbstractNLPEvaluator}())
+            Nullable{AbstractNLPEvaluator}(),
+            Ptr{context}(C_NULL),
+            Ptr{context}(C_NULL),
+            Ptr{jamsd_options}(C_NULL))
+        finalizer(o, jamsd_cleanup)
+        o
     end
 end
 
@@ -429,6 +437,8 @@ function optimize!(m::JAMSDMathProgModel)
             end
         end
     end
+
+    m.jamsd_options = jamsd_options_set(m.options)
 
     if m.emp.hasvalue
        return m.emp.value()
@@ -859,5 +869,21 @@ end
 include("jamsd_mathprgm.jl")
 include("jamsd_ovf.jl")
 include("jamsd_solve.jl")
+
+function jamsd_cleanup(o::JAMSDMathProgModel)
+    ctx_dealloc(o.jamsd_ctx)
+    ctx_dealloc(o.jamsd_ctx_dest)
+    jamsd_options_dealloc(o.jamsd_options)
+end
+
+function jamsd_options_set(opt::Dict{String,option_types})
+    jopt = jamsd_options_alloc()
+
+    for (k,v) in opt
+        jams_option_set(jopt, k, v)
+    end
+
+    return jopt
+end
 
 end
