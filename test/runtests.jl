@@ -13,10 +13,13 @@ examples_path = joinpath(dirname(dirname(@__FILE__)), "examples")
 for example in ["jump_nltrig.jl", "jump_nlexpr.jl"]
     include(joinpath(examples_path, example))
 end
-for example in ["jump_pruning.jl", "jump_minlp.jl",
+for example in [
+                "jump_minlp.jl",
                 "jump_nonlinearbinary.jl",
                 "jump_no_obj.jl",
-                "jump_const_obj.jl"]
+                "jump_const_obj.jl",
+                "jump_pruning.jl"
+                ]
     include(joinpath(examples_path, example))
 end
 
