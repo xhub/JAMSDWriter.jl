@@ -62,11 +62,9 @@ model_stat = [
 export JAMSDSolver, getsolvername, getsolveresult, getsolveresultnum, getsolvemessage,
        getsolveexitcode, create_jamsd_ctx
 
-option_types = Union{Bool,Int,String,Cdouble}
-
 type JAMSDSolver <: AbstractMathProgSolver
     solver_name::String
-    options::Dict{String,option_types}
+    options::Dict{String,Any}
     filename::String
     emp::Nullable{Function}
 end
@@ -75,7 +73,7 @@ end
 @enum MODEL_TYPE qcp=7 nlp=2 miqcp=6 minlp=5 emp=9
 
 function JAMSDSolver(solver_name::String="",
-                     options::Dict{String,option_types}=Dict{String,option_types}();
+                     options::Dict{String,Any}=Dict{String,Any}();
                       filename::String="")
     JAMSDSolver(solver_name, options, filename, Nullable{Function}())
 end
@@ -83,7 +81,7 @@ end
 getsolvername(s::JAMSDSolver) = basename(s.solver_name)
 
 type JAMSDMathProgModel <: AbstractMathProgModel
-    options::Dict{String, option_types}
+    options::Dict{String, Any}
 
     solver_name::String
 
@@ -156,7 +154,7 @@ type JAMSDMathProgModel <: AbstractMathProgModel
     jamsd_options::Ptr{jamsd_options}
 
     function JAMSDMathProgModel(solver_name::String,
-                                options::Dict{String,option_types},
+                                options::Dict{String,Any},
                                 filename::String,
                                 model_type::MODEL_TYPE,
                                 emp)
@@ -876,11 +874,11 @@ function jamsd_cleanup(o::JAMSDMathProgModel)
     jamsd_options_dealloc(o.jamsd_options)
 end
 
-function jamsd_options_set(opt::Dict{String,option_types})
+function jamsd_options_set(opt::Dict{String,Any})
     jopt = jamsd_options_alloc()
 
     for (k,v) in opt
-        jams_option_set(jopt, k, v)
+        jamsd_option_set(jopt, k, v)
     end
 
     return jopt
