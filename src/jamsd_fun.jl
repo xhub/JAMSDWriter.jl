@@ -48,6 +48,7 @@ else
 end
 
 const jamsd_libname = testval ? "jamsd" : "libjamsd"
+const term_str = testval ? "\r\n" : "\n"
 
 function ctx_add_lin_var(ctx::Ptr{context}, eidx, vidx, coeff::Cdouble)
 	equ = ctx_getequ(ctx, eidx)

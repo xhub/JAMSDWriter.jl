@@ -97,9 +97,9 @@ function jamsd_setup_gams()
     res != 0 && error("return code $res from JAMSD")
 
     # hm bad hack
-    gamsdir = split(gamscntr_template, "\r\n")[29]
+    gamsdir = split(gamscntr_template, term_str)[29]
 
-    println("DEBUG: gamsdir is ``$gamsdir''")
+    CONFIG[:debug] && println("DEBUG: gamsdir is ``$gamsdir''")
 
     res = ccall((:gams_set_gamsdir, jamsd_libname), Cint, (Ptr{context}, Cstring), ctx, gamsdir)
     res != 0 && error("return code $res from JAMSD")
