@@ -132,7 +132,7 @@ function emp_create(ctx)
 end
 
 function emp_delete(emp::Ptr{empinfo})
-	return ccall((:hack_empinfo_dealloc, "libjamsd"), Void, (Ptr{empinfo},), emp)
+	return ccall((:hack_empinfo_dealloc, jamsd_libname), Void, (Ptr{empinfo},), emp)
 end
 
 
@@ -395,33 +395,33 @@ function jamsd_get_treedata(ctx, i::Int)
 end
 
 function jamsd_options_alloc()
-	return ccall((:hack_options_alloc, "libjamsd"), Ptr{jamsd_options}, ())
+	return ccall((:hack_options_alloc, jamsd_libname), Ptr{jamsd_options}, ())
 end
 
 function jamsd_options_dealloc(o::Ptr{jamsd_options})
-	ccall((:hack_options_dealloc, "libjamsd"), Void, (Ptr{jamsd_options},), o)
+	ccall((:hack_options_dealloc, jamsd_libname), Void, (Ptr{jamsd_options},), o)
 end
 
 function jamsd_option_set(opt::Ptr{jamsd_options}, k::String, v::Bool)
-	res = ccall((:option_set_b, "libjamsd"), Cint, (Ptr{jamsd_options}, Cstring, Cint), opt, k, v)
+	res = ccall((:option_set_b, jamsd_libname), Cint, (Ptr{jamsd_options}, Cstring, Cint), opt, k, v)
 	res != 0 && error("return code $res from JAMSD")
 end
 
 function jamsd_option_set(opt::Ptr{jamsd_options}, k::String, v::Int)
-	res = ccall((:option_set_i, "libjamsd"), Cint, (Ptr{jamsd_options}, Cstring, Cint), opt, k, v)
+	res = ccall((:option_set_i, jamsd_libname), Cint, (Ptr{jamsd_options}, Cstring, Cint), opt, k, v)
 	res != 0 && error("return code $res from JAMSD")
 end
 
 function jamsd_option_set(opt::Ptr{jamsd_options}, k::String, v::Cdouble)
-	res = ccall((:option_set_d, "libjamsd"), Cint, (Ptr{jamsd_options}, Cstring, Cdouble), opt, k, v)
+	res = ccall((:option_set_d, jamsd_libname), Cint, (Ptr{jamsd_options}, Cstring, Cdouble), opt, k, v)
 	res != 0 && error("return code $res from JAMSD")
 end
 
 function jamsd_option_set(opt::Ptr{jamsd_options}, k::String, v::String)
-	res = ccall((:option_set_s, "libjamsd"), Cint, (Ptr{jamsd_options}, Cstring, Cstring), opt, k, v)
+	res = ccall((:option_set_s, jamsd_libname), Cint, (Ptr{jamsd_options}, Cstring, Cstring), opt, k, v)
 	res != 0 && error("return code $res from JAMSD")
 end
 
 function ctx_dealloc(o::Ptr{context})
-	ccall((:hack_ctx_dealloc,  "libjamsd"), Void, (Ptr{context},), o)
+	ccall((:hack_ctx_dealloc,  jamsd_libname), Void, (Ptr{context},), o)
 end
