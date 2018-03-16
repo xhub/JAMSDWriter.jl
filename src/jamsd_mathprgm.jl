@@ -14,7 +14,8 @@ function jamsd_set_modeltype(m::JAMSDMathProgModel, idx)
 end
 
 function jamsd_declare_mathprgm(mp, ctx::Ptr{context}, id::Int)
-    m = mp.emp.m.internalModel.inner
+    # TODO(xhub) that is JuMP-specific
+    m = mp.emp.model_ds.internalModel.inner
 
     jamsd_mp = emp_mp_alloc(ctx, id)
     if mp.objequ > 0 || mp.objvar > 0

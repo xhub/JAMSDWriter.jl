@@ -4,15 +4,13 @@ module JAMSDWriter
 using MathProgBase
 importall MathProgBase.SolverInterface
 
+export JAMSDSolver, getsolvername, getsolveresult, getsolveresultnum, getsolvemessage, getsolveexitcode
+
 const CONFIG = Dict(
 :debug => false,
 :export_gms => false,
 :solver_log => false
 )
-
-setdebug(b::Bool) = global CONFIG[:debug] = b
-setexport(b::Bool) = global CONFIG[:export_gms] = b
-setsolverlog(b::Bool) = global CONFIG[:solver_log] = b
 
 solverdata_dir = joinpath(Pkg.dir("JAMSDWriter"), ".solverdata")
 
@@ -59,23 +57,34 @@ model_stat = [
    :InfeasibleNoSolution
 ]
 
-export JAMSDSolver, getsolvername, getsolveresult, getsolveresultnum, getsolvemessage,
-       getsolveexitcode, create_jamsd_ctx
-
 type JAMSDSolver <: AbstractMathProgSolver
     solver_name::String
     options::Dict{String,Any}
-    filename::String
     emp::Nullable{Function}
 end
 
 # TODO(xhub) write a better struct/enum here
 @enum MODEL_TYPE qcp=7 nlp=2 miqcp=6 minlp=5 emp=9
 
+"change the debug state"
+setdebug(b::Bool) = global CONFIG[:debug] = b
+"export the problem to a GAMS Model file (.gms)"
+setexport(b::Bool) = global CONFIG[:export_gms] = b
+"printout the log from the solver"
+setsolverlog(b::Bool) = global CONFIG[:solver_log] = b
+
+
+"""
+Create a JAMSDSolver Solver for MPB. The optional arguments are:
+
+# Optional Arguments
+- `solver_name::String=""`: solver used for this problem
+- `options::Dict{String,Any}=Dict{String,Any}()`: the JAMSD options
+
+"""
 function JAMSDSolver(solver_name::String="",
-                     options::Dict{String,Any}=Dict{String,Any}();
-                      filename::String="")
-    JAMSDSolver(solver_name, options, filename, Nullable{Function}())
+                     options::Dict{String,Any}=Dict{String,Any}())
+    JAMSDSolver(solver_name, options, Nullable{Function}())
 end
 
 getsolvername(s::JAMSDSolver) = basename(s.solver_name)
@@ -122,10 +131,6 @@ type JAMSDMathProgModel <: AbstractMathProgModel
 
     x_0::Vector{Float64}
 
-    file_basename::String
-    probfile::String
-    solfile::String
-
     objval::Float64
     solution::Vector{Float64}
 
@@ -155,7 +160,6 @@ type JAMSDMathProgModel <: AbstractMathProgModel
 
     function JAMSDMathProgModel(solver_name::String,
                                 options::Dict{String,Any},
-                                filename::String,
                                 model_type::MODEL_TYPE,
                                 emp)
         o = new(options,
@@ -183,9 +187,6 @@ type JAMSDMathProgModel <: AbstractMathProgModel
             Dict{Int, Int}(),
             :Min,
             zeros(0),
-            filename,
-            "",
-            "",
             NaN,
             zeros(0),
             :NotSolved,
@@ -223,11 +224,11 @@ end
 include("jamsd_write.jl")
 
 NonlinearModel(s::JAMSDSolver) = JAMSDNonlinearModel(
-    JAMSDMathProgModel(s.solver_name, s.options, s.filename, nlp, s.emp)
+    JAMSDMathProgModel(s.solver_name, s.options, nlp, s.emp)
 )
 
 LinearQuadraticModel(s::JAMSDSolver) = JAMSDLinearQuadraticModel(
-    JAMSDMathProgModel(s.solver_name, s.options, s.filename, qcp, s.emp)
+    JAMSDMathProgModel(s.solver_name, s.options, qcp, s.emp)
 )
 
 function ConicModel(s::JAMSDSolver)
