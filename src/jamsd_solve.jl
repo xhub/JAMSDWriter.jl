@@ -83,6 +83,8 @@ function jamsd_setup_gams()
             gams_dir = mktempdir(pwd())
             cur_dir = gams_dir
         end
+    else
+        mkdir(gams_dir)
     end
 
     gamscntr_file = open(joinpath(gams_dir, "gamscntr.dat"), "w")
