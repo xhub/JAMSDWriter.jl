@@ -157,6 +157,7 @@ type JAMSDMathProgModel <: AbstractMathProgModel
     jamsd_ctx::Ptr{context}
     jamsd_ctx_dest::Ptr{context}
     jamsd_options::Ptr{jamsd_options}
+    gams_dir::String
 
     function JAMSDMathProgModel(solver_name::String,
                                 options::Dict{String,Any},
@@ -205,7 +206,8 @@ type JAMSDMathProgModel <: AbstractMathProgModel
             Nullable{AbstractNLPEvaluator}(),
             Ptr{context}(C_NULL),
             Ptr{context}(C_NULL),
-            Ptr{jamsd_options}(C_NULL))
+            Ptr{jamsd_options}(C_NULL),
+            "")
         finalizer(o, jamsd_cleanup)
         o
     end
@@ -451,7 +453,7 @@ function optimize!(m::JAMSDMathProgModel)
     m.jamsd_ctx = create_jamsd_ctx(m)
     jamsd_set_modeltype(m)
     # Solve via gams for now
-    m.jamsd_ctx_dest = jamsd_setup_gams()
+    m.jamsd_ctx_dest, m.gams_dir = jamsd_setup_gams()
 
     m.solve_exitcode = jamsd_solve(m.jamsd_ctx, m.jamsd_ctx_dest, m.solver_name)
 
@@ -873,6 +875,13 @@ function jamsd_cleanup(o::JAMSDMathProgModel)
     ctx_dealloc(o.jamsd_ctx)
     ctx_dealloc(o.jamsd_ctx_dest)
     jamsd_options_dealloc(o.jamsd_options)
+    if (!isempty(o.gams_dir))
+        try
+            rm(o.gams_dir, recursive=true, force=true)
+        catch
+            iswin && run(`cmd /C RMDIR /s /q $(o.gams_dir)`)
+        end
+    end
 end
 
 function jamsd_options_set(opt::Dict{String,Any})

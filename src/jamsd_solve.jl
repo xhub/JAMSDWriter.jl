@@ -72,19 +72,15 @@ function jamsd_setup_gams()
 
     gamscntr_template = readstring(gamscntr_template_file)
 
-    gams_dir = "gams_dir"
-    cur_dir = joinpath(pwd(), "gams_dir")
+    gams_dir = mktempdir(pwd())
+    cur_dir = gams_dir
     if isdir(gams_dir)
         try
-            rm("gams_dir", recursive=true, force=true)
+            rm(gams_dir, recursive=true, force=true)
             mkdir(gams_dir)
         catch
-            run(`cmd /C RMDIR /s /q gams_dir`)
-            gams_dir = mktempdir(pwd())
-            cur_dir = gams_dir
+            run(`cmd /C RMDIR /s /q $gams_dir`)
         end
-    else
-        mkdir(gams_dir)
     end
 
     gamscntr_file = open(joinpath(gams_dir, "gamscntr.dat"), "w")
@@ -108,7 +104,7 @@ function jamsd_setup_gams()
 
     ENV["PATH"] *= ":" * gamsdir
 
-    return ctx
+    return (ctx, gams_dir)
 end
 
 function jamsd_init_gams_solverdata()
@@ -138,5 +134,9 @@ function jamsd_init_gams_solverdata()
 
     close(out_gamscntr)
 
-    rm(substr, recursive=true)
+    try
+        rm(substr, recursive=true, force=true)
+    catch
+        run(`cmd /C RMDIR /s /q $substr`)
+    end
 end

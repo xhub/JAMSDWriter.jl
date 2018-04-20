@@ -42,13 +42,13 @@ end
 
 # TODO with latest Julia
 if VERSION < v"0.7"
-	testval = is_windows()
+	iswin = is_windows()
 else
-	testval = Sys.iswindows()
+	iswin = Sys.iswindows()
 end
 
-const jamsd_libname = testval ? "jamsd" : "libjamsd"
-const term_str = testval ? "\r\n" : "\n"
+const jamsd_libname = iswin ? "jamsd" : "libjamsd"
+const term_str = iswin ? "\r\n" : "\n"
 
 function ctx_add_lin_var(ctx::Ptr{context}, eidx, vidx, coeff::Cdouble)
 	equ = ctx_getequ(ctx, eidx)
