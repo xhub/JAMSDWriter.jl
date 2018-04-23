@@ -104,6 +104,9 @@ function jamsd_setup_gams()
 
     ENV["PATH"] *= ":" * gamsdir
 
+    # This is needed to prevent the listing of the Process directory
+    ENV["DEBUG_PGAMS"] = '0'
+
     return (ctx, gams_dir)
 end
 
