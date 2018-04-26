@@ -36,5 +36,5 @@ lsolver = JAMSDWriter.JAMSDSolver("knitro")
     @NLconstraint(m, 0 <= 1.0)
 
     @test solve(m) == :Optimal
-    @test getobjectivevalue(m) == roughly(400, 1e-2)
+    @test isapprox(getobjectivevalue(m), 400, atol=1e-2)
 end

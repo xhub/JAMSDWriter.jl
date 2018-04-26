@@ -74,14 +74,14 @@ function jamsd_setup_gams()
 
     gams_dir = mktempdir(pwd())
     cur_dir = gams_dir
-    if isdir(gams_dir)
-        try
-            rm(gams_dir, recursive=true, force=true)
-            mkdir(gams_dir)
-        catch
-            run(`cmd /C RMDIR /s /q $gams_dir`)
-        end
-    end
+    # if isdir(gams_dir)
+    #     try
+    #         rm(gams_dir, recursive=true, force=true)
+    #         mkdir(gams_dir)
+    #     catch
+    #         run(`cmd /C RMDIR /s /q $gams_dir`)
+    #     end
+    # end
 
     gamscntr_file = open(joinpath(gams_dir, "gamscntr.dat"), "w")
 
@@ -120,26 +120,15 @@ function jamsd_init_gams_solverdata()
         return
     end
 
-    substr = joinpath(solverdata_dir, "tototututata")
     gms_file = joinpath(solverdata_dir, "dummy.gms")
 
-    rm(substr, force=true, recursive=true)
-    mkdir(substr)
+    mktempdir(solverdata_dir) do substr
+        run(`gams $gms_file scrdir=$substr lo=0`)
 
-    path = ENV["PATH"]
-    println("$path")
-    run(`gams $gms_file scrdir=$substr lo=0`)
-
-    out_gamscntr = open(gamscntr, "w")
-    input = readstring(open(joinpath(substr, "gamscntr.dat")))
-    input = replace(input, pwd(), "@@SUB@@")
-    println(out_gamscntr, replace(input, substr, "@@SUB@@"))
-
-    close(out_gamscntr)
-
-    try
-        rm(substr, recursive=true, force=true)
-    catch
-        run(`cmd /C RMDIR /s /q $substr`)
+        open(gamscntr, "w") do out_gamscntr
+            input = readstring(joinpath(substr, "gamscntr.dat"))
+            input = replace(input, pwd(), "@@SUB@@")
+            println(out_gamscntr, replace(input, substr, "@@SUB@@"))
+        end
     end
 end
