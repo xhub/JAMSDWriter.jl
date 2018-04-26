@@ -1,4 +1,4 @@
-facts("[nl_write] Temp file handling") do
+@testset "nl_write" begin
     # Turn on debug mode so files persist
     old_debug = JAMSDWriter.CONFIG[:debug]
     JAMSDWriter.setdebug(true)

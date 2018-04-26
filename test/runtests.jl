@@ -1,4 +1,4 @@
-using JAMSDWriter, Compat, FactCheck, JuMP
+using JAMSDWriter, Compat, JuMP
 using Base.Test
 
 include("nl_convert.jl")
@@ -85,11 +85,3 @@ include(Pkg.dir("JuMP","test","qcqpmodel.jl"))
 ipt = false
 
 include("jump_test_nonlinear.jl")
-
-for res in FactCheck.allresults
-    if typeof(res) != FactCheck.Success
-        println("$(res)")
-    end
-end
-
-FactCheck.exitstatus()
