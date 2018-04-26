@@ -12,14 +12,14 @@ const CONFIG = Dict(
 :solver_log => false
 )
 
-solverdata_dir = joinpath(Pkg.dir("JAMSDWriter"), ".solverdata")
+const solverdata_dir = joinpath(dirname(@__DIR__), ".solverdata")
 
 include("jamsd_linearity.jl")
 include("jamsd_params.jl")
 include("jamsd_convert.jl")
 include("jamsd_fun.jl")
 
-solver_stat = [
+const solver_stat = [
    :Optimal,
    :Iteration,
    :Resource,
@@ -35,7 +35,7 @@ solver_stat = [
    :SystemErr
 ]
 
-model_stat = [
+const model_stat = [
    :OptimalGlobal,
    :OptimalLocal,
    :Unbounded,
@@ -342,13 +342,13 @@ function loadproblem!(outer::JAMSDLinearQuadraticModel, A::AbstractMatrix,
         if lower == -Inf
             if upper == Inf
                 error("Neither lower nor upper bound on constraint $j")
-            else # <= 
+            else # <=
                 m.r_codes[j] = 2
             end
         else
             if lower == upper  # ==
                 m.r_codes[j] = 0
-            elseif upper == Inf # >= 
+            elseif upper == Inf # >=
                 m.r_codes[j] = 1
             else # lb <= expr <= ub
                 m.r_codes[j] = -1
@@ -696,7 +696,7 @@ function report_results_common(m::JAMSDMathProgModel)
 
     ###########################################################################
     # Convert solve_result
-    # 
+    #
     # GAMS return two information:
     #  - the solve status
     #  - the model status

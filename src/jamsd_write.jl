@@ -72,7 +72,7 @@ end
 
 function jamsd_quad(ctx, m::JAMSDMathProgModel, idx, equ, offset, isObj::Bool=false)
     ##########################################################################
-    # 
+    #
     ##########################################################################
     if isObj
         eidx = m.offset
@@ -222,7 +222,7 @@ function jamsd_add_contraint_sense(ctx, m::JAMSDMathProgModel, offset)
             value = lower
         elseif rel == 1         # >=
             value = lower
-        elseif rel == 2         # <= 
+        elseif rel == 2         # <=
             value = upper
         elseif rel == 4         # ???
             value == upper
