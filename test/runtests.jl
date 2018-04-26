@@ -1,28 +1,29 @@
 using JAMSDWriter, Compat, JuMP
 using Base.Test
 
-include("nl_convert.jl")
-include("nl_linearity.jl")
-include("nl_write.jl")
+@testset "Basic Functionality" begin
+    include("nl_convert.jl")
+    include("nl_linearity.jl")
+    include("nl_write.jl")
+end
 
 #solver = JuMP.UnsetSolver()
 solvers = Any[]
 push!(solvers, JAMSDSolver())
 
-examples_path = joinpath(dirname(dirname(@__FILE__)), "examples")
-for example in ["jump_nltrig.jl", "jump_nlexpr.jl"]
-    include(joinpath(examples_path, example))
+@testset "Examples" begin
+    examples_path = joinpath(dirname(dirname(@__FILE__)), "examples")
+    for example in ["jump_nltrig.jl",
+                    "jump_nlexpr.jl",
+                    "jump_minlp.jl",
+                    "jump_nonlinearbinary.jl",
+                    "jump_no_obj.jl",
+                    "jump_const_obj.jl",
+                    "jump_pruning.jl"
+                    ]
+        include(joinpath(examples_path, example))
+    end
 end
-for example in [
-                "jump_minlp.jl",
-                "jump_nonlinearbinary.jl",
-                "jump_no_obj.jl",
-                "jump_const_obj.jl",
-                "jump_pruning.jl"
-                ]
-    include(joinpath(examples_path, example))
-end
-
 # need to support n-ary max and min operators
 #for example in ["jump_maxmin.jl"]
 #    include(joinpath(examples_path, example))
@@ -70,14 +71,12 @@ push!(convex_nlp_solvers, JAMSDSolver("minos"))
 push!(convex_nlp_solvers, JAMSDSolver("snopt"))
 push!(convex_nlp_solvers, JAMSDSolver("mosek"))
 
-push!(nlp_solvers, JAMSDSolver("baron"))
+# push!(nlp_solvers, JAMSDSolver("baron"))
 push!(nlp_solvers, JAMSDSolver("knitro"))
 
 append!(convex_nlp_solvers, nlp_solvers)
 
 push!(minlp_solvers, JAMSDSolver())
-
-
 
 include(Pkg.dir("JuMP","test","qcqpmodel.jl"))
 
