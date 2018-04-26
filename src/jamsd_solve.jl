@@ -74,14 +74,6 @@ function jamsd_setup_gams()
 
     gams_dir = mktempdir(pwd())
     cur_dir = gams_dir
-    # if isdir(gams_dir)
-    #     try
-    #         rm(gams_dir, recursive=true, force=true)
-    #         mkdir(gams_dir)
-    #     catch
-    #         run(`cmd /C RMDIR /s /q $gams_dir`)
-    #     end
-    # end
 
     gamscntr_file = open(joinpath(gams_dir, "gamscntr.dat"), "w")
 
