@@ -75,10 +75,9 @@ function jamsd_setup_gams()
     gams_dir = mktempdir(pwd())
     cur_dir = gams_dir
 
-    gamscntr_file = open(joinpath(gams_dir, "gamscntr.dat"), "w")
-
-    println(gamscntr_file, replace(gamscntr_template, r"@@SUB@@", cur_dir))
-    close(gamscntr_file)
+    open(joinpath(gams_dir, "gamscntr.dat"), "w") do gamscntr_file
+        println(gamscntr_file, replace(gamscntr_template, r"@@SUB@@", cur_dir))
+    end
 
     # we need an empty Matrixfile
     touch(joinpath(cur_dir, "gamsmatr.dat"))
