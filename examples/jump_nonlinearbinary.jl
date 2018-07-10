@@ -8,7 +8,7 @@ using JuMP, Base.Test, JAMSDWriter
  #  The solution is (0, 0).
  ##
 
-if !isdefined(:solver); solver = JAMSDWriter.JAMSDSolver(); end
+if !isdefined(:solver_sbb); solver_sbb = JAMSDWriter.JAMSDSolver("sbb"); end
 
 @testset "example: jump_nonlinearbinary" begin
     m = Model(solver=solver)
