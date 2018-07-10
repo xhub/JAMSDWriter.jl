@@ -17,6 +17,7 @@ function jamsd_set_modeltype(ctx::Ptr{context}, model_type)
     res != 0 && error("return code $res from JAMSD")
 end
 
+# TODO(xhub) reimplement writemodel using CONVERTD
 function jamsd_solve(ctx::Ptr{context}, ctx_dest::Ptr{context}, solver_name::String, emp::Ptr{empinfo}=Ptr{empinfo}(C_NULL))
 
     CONFIG[:solver_log] && hack_solver_log()
@@ -25,10 +26,8 @@ function jamsd_solve(ctx::Ptr{context}, ctx_dest::Ptr{context}, solver_name::Str
         res = ccall((:empinfo_transform, jamsd_libname), Cint, (Ptr{empinfo}, Ptr{context}), emp, ctx_dest)
         res != 0 && error("return code $res from JAMSD")
 
-        hack_exportempinfo(ctx_dest, ctx, emp)
-
         if CONFIG[:export_gms]
-            ccall((:ctx_writemodel, jamsd_libname), Cint, (Ptr{context}, Cstring), ctx_dest, "validation.gms")
+#            ccall((:ctx_writemodel, jamsd_libname), Cint, (Ptr{context}, Cstring), ctx_dest, "validation.gms")
             ccall((:ctx_setsolverstr, jamsd_libname), Cint, (Ptr{context}, Cstring), ctx_dest, "CONVERTD")
             ccall((:ctx_callsolver, jamsd_libname), Cint, (Ptr{context},), ctx_dest)
         end
@@ -43,10 +42,8 @@ function jamsd_solve(ctx::Ptr{context}, ctx_dest::Ptr{context}, solver_name::Str
         res = ccall((:ctx_exportmodel, jamsd_libname), Cint, (Ptr{context}, Ptr{context}), ctx, ctx_dest)
         res != 0 && error("return code $res from JAMSD")
 
-        JAMSDWriter.emp_hack(emp)
-
         if CONFIG[:export_gms]
-            ccall((:ctx_writemodel, jamsd_libname), Cint, (Ptr{context}, Cstring), ctx_dest, "validation.gms")
+#            ccall((:ctx_writemodel, jamsd_libname), Cint, (Ptr{context}, Cstring), ctx_dest, "validation.gms")
             ccall((:ctx_setsolverstr, jamsd_libname), Cint, (Ptr{context}, Cstring), ctx_dest, "CONVERTD")
             ccall((:ctx_callsolver, jamsd_libname), Cint, (Ptr{context},), ctx_dest)
         end

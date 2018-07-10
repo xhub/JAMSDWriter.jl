@@ -13,17 +13,15 @@ function jamsd_set_modeltype(m::JAMSDMathProgModel, idx)
     res != 0 && error("return code $res from JAMSD")
 end
 
-function jamsd_declare_mathprgm(mp, ctx::Ptr{context}, id::Int)
+function jamsd_declare_mathprgm(mp, ctx::Ptr{context}, emp::Ptr{empinfo})
     # TODO(xhub) that is JuMP-specific
     m = mp.emp.model_ds.internalModel.inner
 
-    jamsd_mp = emp_mp_alloc(ctx, id)
+    jamsd_mp = emp_mp_alloc(emp, ctx)
     if mp.objequ > 0 || mp.objvar > 0
         typ = 0
-        # mode is AGENT_OPT2MCP
-        mod = 1
 
-        emp_mp_start(jamsd_mp, typ, mod)
+        emp_mp_start(jamsd_mp, typ)
         emp_mp_objdir(jamsd_mp, mp.sense)
         emp_mp_objequ(jamsd_mp, mp.objequ-1)
 
@@ -44,8 +42,8 @@ function jamsd_declare_mathprgm(mp, ctx::Ptr{context}, id::Int)
         end
     else
         typ = 2
-        mod = 2
-        emp_mp_start(jamsd_mp, typ, mod)
+
+        emp_mp_start(jamsd_mp, typ)
         VIvars = keys(mp.matching)
         equ_seen = Vector{Int}(length(mp.equs))
         sidx = 1
