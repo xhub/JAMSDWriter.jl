@@ -7,9 +7,6 @@ end
 mutable struct empinfo
 end
 
-mutable struct empinfo_equil
-end
-
 mutable struct equtree
 end
 
@@ -32,6 +29,9 @@ mutable struct ovf_definition
 end
 
 mutable struct jamsd_options
+end
+
+mutable struct equil
 end
 
 mutable struct option
@@ -132,14 +132,36 @@ function emp_create(ctx)
 	return ccall((:empinfo_alloc, jamsd_libname), Ptr{empinfo}, (Ptr{context},), ctx)
 end
 
+function emp_create_equil(max_mp)
+	return ccall((:mp_equil_alloc, jamsd_libname), Ptr{equil}, (Cuint,), max_mp)
+end
+
 function emp_delete(emp::Ptr{empinfo})
 	return ccall((:hack_empinfo_dealloc, jamsd_libname), Void, (Ptr{empinfo},), emp)
 end
 
+function emp_add_mp_mp(mp_parent, mp)
+	res = ccall((:mathprgm_addmp, jamsd_libname), Cint, (Ptr{mathprgm}, Ptr{mathprgm}), mp_parent, mp)
+	res != 0 && error("return code $res from JAMSD")
+end
 
-#function emp_create_equil(emp)
-#	return ccall((:equil_alloc, jamsd_libname), Ptr{empinfo_equil}, (Ptr{empinfo},), emp)
-#end
+function emp_add_mp_equil(mp_parent, mpe)
+	res = ccall((:mathprgm_addequil, jamsd_libname), Cint, (Ptr{mathprgm}, Ptr{equil}), mp_parent, mpe)
+	res != 0 && error("return code $res from JAMSD")
+end
+
+function emp_add_equil(emp)
+	mpe = Ref{Ptr{equil}}(C_NULL)
+	res = ccall((:empinfo_add_equil, jamsd_libname), Cint, (Ptr{empinfo}, Ref{Ptr{equil}}), emp, mpe)
+	res != 0 && error("return code $res from JAMSD")
+
+	return mpe.x
+end
+
+function emp_equil_add(mpe, mp)
+	res = ccall((:mp_equil_add, jamsd_libname), Cint, (Ptr{equil}, Ptr{mathprgm}), mpe, mp)
+	res != 0 && error("return code $res from JAMSD")
+end
 
 function emp_hack(emp)
 	res = ccall((:hack_ag_addfinish, jamsd_libname), Cint, (Ptr{empinfo},), emp)
@@ -147,22 +169,17 @@ function emp_hack(emp)
 end
 
 function emp_mp_ensure(emp, nb)
-	res = ccall((:mathprgm_ensure, jamsd_libname), Cint, (Ptr{empinfo}, Cuint), emp, nb)
+	res = ccall((:empinfo_ensure, jamsd_libname), Cint, (Ptr{empinfo}, Cuint), emp, nb)
 	res != 0 && error("return code $res from JAMSD")
 end
 
-function emp_mp_store(emp, mp::Ptr{mathprgm})
-	res = ccall((:mathprgm_store, jamsd_libname), Cint, (Ptr{empinfo}, Ptr{mathprgm}), emp, mp)
-	res != 0 && error("return code $res from JAMSD")
-end
-
-function emp_mp_alloc(ctx, id)
-	mp = ccall((:mathprgm_alloc, jamsd_libname), Ptr{mathprgm}, (Cint, Ptr{context}), id, ctx)
+function emp_mp_alloc(emp, ctx)
+	mp = ccall((:mathprgm_alloc, jamsd_libname), Ptr{mathprgm}, (Ptr{empinfo}, Ptr{context}), emp, ctx)
 	return mp
 end
 
-function emp_mp_start(mp, typ, mode)
-	res = ccall((:mathprgm_addstart, jamsd_libname), Cint, (Ptr{mathprgm}, Cuint, Cuint), mp, typ, mode)
+function emp_mp_start(mp, typ)
+	res = ccall((:mathprgm_addstart, jamsd_libname), Cint, (Ptr{mathprgm}, Cuint), mp, typ)
 	res != 0 && error("return code $res from JAMSD")
 end
 
@@ -203,6 +220,16 @@ end
 
 function emp_report_values(emp, ctx)
 	res = ccall((:empinfo_report_values, jamsd_libname), Cint, (Ptr{empinfo}, Ptr{context}), emp, ctx)
+	res != 0 && error("return code $res from JAMSD")
+end
+
+function emp_set_root(emp, mpe::Ptr{equil})
+	res = ccall((:empinfo_set_emproot_mpe, jamsd_libname), Cint, (Ptr{empinfo}, Ptr{equil}), emp, mpe)
+	res != 0 && error("return code $res from JAMSD")
+end
+
+function emp_set_root(emp, mp::Ptr{mathprgm})
+	res = ccall((:empinfo_set_emproot_mp, jamsd_libname), Cint, (Ptr{empinfo}, Ptr{mathprgm}), emp, mp)
 	res != 0 && error("return code $res from JAMSD")
 end
 
