@@ -8,9 +8,9 @@ using JuMP, FactCheck, JAMSDWriter
  #  The solution is (0, 0).
  ##
 
-if !isdefined(:solver); solver = JAMSDWriter.JAMSDSolver(); end
+if !isdefined(:solver_sbb); solver_sbb = JAMSDWriter.JAMSDSolver("sbb"); end
 
-m = Model(solver=solver)
+m = Model(solver=solver_sbb)
 @variable(m, x[1:2], Bin)
 
 # Set some non-binary bounds on x1 and x2. These should be ignored.
