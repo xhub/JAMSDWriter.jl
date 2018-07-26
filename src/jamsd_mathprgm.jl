@@ -18,6 +18,9 @@ function jamsd_declare_mathprgm(mp, ctx::Ptr{context}, emp::Ptr{empinfo})
     m = mp.emp.model_ds.internalModel.inner
 
     jamsd_mp = emp_mp_alloc(emp, ctx)
+
+    CONFIG[:debug] && println("DEBUG: jamsd_declare_mathprgm: tackling MP sense = $(mp.sense) objequ = $(mp.objequ) equs = $(mp.equs) vars = $(mp.vars)")
+
     if mp.objequ > 0 || mp.objvar > 0
         typ = 0
 
