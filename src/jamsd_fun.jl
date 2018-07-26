@@ -120,6 +120,13 @@ function ctx_getequ(ctx, idx)
 	equ = ccall((:ctx_getequ, jamsd_libname), Ptr{jamsd_equ}, (Ptr{context}, Cint), ctx, idx)
 end
 
+function ctx_getequval(ctx, idx)
+	val = Ref{Cdouble}(NaN)
+	res = ccall((:ctx_getequlone, jamsd_libname), Cint, (Ptr{context}, Cint, Ref{Cdouble}), ctx, idx, val)
+	res != 0 && error("return code $res from JAMSD")
+	return val.x
+end
+
 
 function ctx_getmultiplierval(ctx::Ptr{context}, idx)
 	val = Ref{Cdouble}(NaN)
@@ -213,10 +220,21 @@ function emp_mp_vipair(mp, eidx, vidx)
 	res != 0 && error("return code $res from JAMSD")
 end
 
-function emp_mp_to_agent(ctx, emp)
-	res = ccall((:mathprgm_to_agent, jamsd_libname), Cint, (Ptr{context}, Ptr{empinfo}), ctx, emp)
-	res != 0 && error("return code $res from JAMSD")
+function emp_mp_getobjvar(mp)
+	return ccall((:mathprgm_getobjvar, jamsd_libname), Cint, (Ptr{mathprgm},), mp)
 end
+
+function emp_mp_getobjdir(mp)
+	return ccall((:mathprgm_getobjvar, jamsd_libname), Cint, (Ptr{mathprgm},), mp)
+end
+
+function emp_mp_print(mp, ctx)
+	ccall((:mathprgm_print, jamsd_libname), Cint, (Ptr{mathprgm}, Ptr{context}), mp, ctx)
+end
+#function emp_mp_to_agent(ctx, emp)
+#	res = ccall((:mathprgm_to_agent, jamsd_libname), Cint, (Ptr{context}, Ptr{empinfo}), ctx, emp)
+#	res != 0 && error("return code $res from JAMSD")
+#end
 
 function emp_report_values(emp, ctx)
 	res = ccall((:empinfo_report_values, jamsd_libname), Cint, (Ptr{empinfo}, Ptr{context}), emp, ctx)

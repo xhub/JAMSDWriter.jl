@@ -63,9 +63,7 @@ function jamsd_add_cons_nl(ctx, m::JAMSDMathProgModel, offset)
             eidx = m.nonquad_idx[idx] + offset - 1 + m.offset
             tree, node = jamsd_get_treedata(ctx, eidx)
             CONFIG[:debug] && println("jamsd_add_cons_nl: storing expression $(eidx)")
-            if m.constrs[idx] != 0.
-                jamsd_add_nlexpr(ctx, tree, node, m, m.constrs[idx])
-            end
+            jamsd_add_nlexpr(ctx, tree, node, m, m.constrs[idx])
         end
     end
 end
@@ -85,6 +83,8 @@ function jamsd_quad(ctx, m::JAMSDMathProgModel, idx, equ, offset, isObj::Bool=fa
     CONFIG[:debug] && println("jamsd_quad: $lidx $lval $rowidx $colidx $qval")
 
     ##########################################################################
+    # lin_dict collects all the linear terms
+    # 
     # we don't construct the dict directly, since it may have duplicate values
     ##########################################################################
 
@@ -93,14 +93,14 @@ function jamsd_quad(ctx, m::JAMSDMathProgModel, idx, equ, offset, isObj::Bool=fa
         lin_dict[lidx[i]] += lval[i]
     end
 
-    quad_dict = Dict(zip(zip(rowidx, colidx), Iterators.repeated(0.)))
-
     ###########################################################################
     # MPB is a bit insane here: via setquadobj! it provides a triangular matrix
     # representing .5 x^TQx ... But this makes no sense since we assume that
     # the multiplication is commutative here. Therefore the values of the off-
     # diagonal element have to be multiplied by 2
     ###########################################################################
+
+    quad_dict = Dict(zip(zip(rowidx, colidx), Iterators.repeated(0.)))
 
     if isObj
         for i in 1:length(rowidx)
@@ -142,9 +142,10 @@ function jamsd_quad(ctx, m::JAMSDMathProgModel, idx, equ, offset, isObj::Bool=fa
     # Add the term <c,x> for the quadratic variables
     ##########################################################################
 
-    if length(lin_dict) > 0
+    if length(lin_dict) > 0 && length(qidxS) > 0
         # TODO(xhub) filter for qvals[i] = 0.
         qvals = collect(lin_dict[qidx] for qidx in qidxS)
+        CONFIG[:debug] && println("DEBUG: in jamsd_quad, qidxS = $qidxS; qval= $qvals")
         abs_var = jamsd_avar(length(qidxS), collect(qidxS) .- 1)
         CONFIG[:debug] && println("DEBUG: in jamsd_quad, quad var $(collect(qidxS)) with value $qvals")
         jamsd_equ_add_lin_tree(ctx, eidx, qvals, abs_var, 1.)
@@ -155,19 +156,23 @@ function jamsd_quad(ctx, m::JAMSDMathProgModel, idx, equ, offset, isObj::Bool=fa
     # Add the quadratic terms <x, Mx>
     ##########################################################################
 
-    CONFIG[:debug] && println("DEBUG: in jamsd_quad, quad term $rowidxU $colidxU $qvalU")
-    mat = jamsd_mat_coo(rowidxU, colidxU, qvalU)
-    midxS = union(IntSet(rowidx), IntSet(colidx))
-    avar = jamsd_avar(length(midxS), collect(i-1 for i in midxS))
-    if isObj
-        c = 1.
-    else
-        c = 2.
+    if length(qvalU) > 0
+        CONFIG[:debug] && println("DEBUG: in jamsd_quad, quad term $rowidxU $colidxU $qvalU")
+        @assert length(qvalU) == length(rowidxU)
+        @assert length(qvalU) == length(colidxU)
+        mat = jamsd_mat_coo(rowidxU, colidxU, qvalU)
+        midxS = union(IntSet(rowidx), IntSet(colidx))
+        avar = jamsd_avar(length(midxS), collect(i-1 for i in midxS))
+        if isObj
+            c = 1.
+        else
+            c = 2.
+        end
+        # the coeff is 2 since this function adds .5 x^TMx
+        jamsd_equ_add_quadratic(ctx, eidx, mat, avar, c)
+        jamsd_avar_free(avar)
+        jamsd_mat_free(mat)
     end
-    # the coeff is 2 since this function adds .5 x^TMx
-    jamsd_equ_add_quadratic(ctx, eidx, mat, avar, c)
-    jamsd_avar_free(avar)
-    jamsd_mat_free(mat)
 end
 
 function jamsd_add_obj_quad(ctx, m::JAMSDMathProgModel)
@@ -193,9 +198,9 @@ end
 # Nonlinear objective tree
 function jamsd_add_obj_nl(ctx, m::JAMSDMathProgModel)
     # Get tree, node, ...
-    tree, node = jamsd_get_treedata(ctx, m.offset)
-    CONFIG[:debug] && println("jamsd_add_obj_nl: storing expression $(m.offset)")
     if m.obj != 0.
+        tree, node = jamsd_get_treedata(ctx, m.offset)
+        CONFIG[:debug] && println("jamsd_add_obj_nl: storing expression $(m.offset)")
         jamsd_add_nlexpr(ctx, tree, node, m, m.obj)
     end
 end
