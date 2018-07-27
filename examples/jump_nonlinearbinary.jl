@@ -11,7 +11,7 @@ using JuMP, Base.Test, JAMSDWriter
 if !isdefined(:solver_sbb); solver_sbb = JAMSDWriter.JAMSDSolver("sbb"); end
 
 @testset "example: jump_nonlinearbinary" begin
-    m = Model(solver=solver)
+    m = Model(solver=solver_sbb)
     @variable(m, x[1:2], Bin)
 
     # Set some non-binary bounds on x1 and x2. These should be ignored.
