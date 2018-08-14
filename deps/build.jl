@@ -19,10 +19,10 @@ Windows(:x86_64)        => ("$bin_prefix-win64/jamsd.dll", "bee639c681701e2227b9
 # TODO with latest Julia
 if VERSION < v"0.7"
 	iswin = is_windows()
-    islinux = is_linux()
+        islinux = is_linux()
 else
 	iswin = Sys.iswindows()
-    islinux = Sys.is_linux()
+        islinux = Sys.islinux()
 end
 
 if iswin
