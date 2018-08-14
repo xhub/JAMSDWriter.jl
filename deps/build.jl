@@ -16,7 +16,16 @@ Windows(:x86_64)        => ("$bin_prefix-win64/jamsd.dll", "bee639c681701e2227b9
 #    MacOS(:x86_64)          => ("$bin_prefix/libfoo.x86_64-apple-darwin14.tar.gz", "fcc268772d6f21d65b45fcf3854a3142679b78e53c7673dac26c95d6ccc89a24"),
 )
 
-if is_windows()
+# TODO with latest Julia
+if VERSION < v"0.7"
+	iswin = is_windows()
+    islinux = is_linux()
+else
+	iswin = Sys.iswindows()
+    islinux = Sys.is_linux()
+end
+
+if iswin
     if Sys.ARCH == :x86_64
         provides(Binaries, URI("$bin_prefix-win64/libjamsd.tar.xz"), libjamsd, os = :Windows)
     elseif Sys.ARCH == :i686
@@ -24,7 +33,7 @@ if is_windows()
     end
 end
 
-if is_linux()
+if islinux
     if Sys.ARCH == :x86_64
         provides(Binaries, URI("$bin_prefix-x86_64-linux-gnu/libjamsd.tar.xz"), libjamsd, os = :Linux)
     end
