@@ -6,6 +6,14 @@ importall MathProgBase.SolverInterface
 
 export JAMSDSolver, getsolvername, getsolveresult, getsolveresultnum, getsolvemessage, getsolveexitcode
 
+# Load in `deps.jl`, complaining if it does not exist
+const depsjl_path = joinpath(dirname(@__FILE__), "..", "deps", "deps.jl")
+if !isfile(depsjl_path)
+    error("JAMSDWriter not installed properly, run Pkg.build(\"JAMSDWriter\"), restart Julia and try again")
+end
+
+include(depsjl_path)
+
 const CONFIG = Dict(
 :debug => false,
 :export_gms => false,
@@ -457,7 +465,7 @@ function optimize!(m::JAMSDMathProgModel)
 
     m.solve_exitcode = jamsd_solve(m.jamsd_ctx, m.jamsd_ctx_dest, m.solver_name)
 
-#    ccall((:print_model, jamsd_libname), Cint, (Ptr{context},), m.jamsd_ctx)
+#    ccall((:print_model, libjamsd), Cint, (Ptr{context},), m.jamsd_ctx)
     m.solve_time = time() - t
 
     if m.solve_exitcode == 0
@@ -709,17 +717,17 @@ function report_results_common(m::JAMSDMathProgModel)
     ###########################################################################
 
     tmpCint = Ref{Cint}(0)
-    res = ccall((:ctx_getsolvestat, jamsd_libname), Cint, (Ptr{context}, Ref{Cint}), m.jamsd_ctx_dest, tmpCint)
+    res = ccall((:ctx_getsolvestat, libjamsd), Cint, (Ptr{context}, Ref{Cint}), m.jamsd_ctx_dest, tmpCint)
     res != 0 && error("return code $res from JAMSD")
     m.solve_result_num = tmpCint.x
-    m.solve_result = unsafe_string(ccall((:ctx_getsolvestattxt, jamsd_libname), Cstring, (Ptr{context}, Cint), m.jamsd_ctx_dest, m.solve_result_num))
+    m.solve_result = unsafe_string(ccall((:ctx_getsolvestattxt, libjamsd), Cstring, (Ptr{context}, Cint), m.jamsd_ctx_dest, m.solve_result_num))
 
-    res = ccall((:ctx_getmodelstat, jamsd_libname), Cint, (Ptr{context}, Ref{Cint}), m.jamsd_ctx_dest, tmpCint)
+    res = ccall((:ctx_getmodelstat, libjamsd), Cint, (Ptr{context}, Ref{Cint}), m.jamsd_ctx_dest, tmpCint)
     res != 0 && error("return code $res from JAMSD")
 
     m.model_result_num = tmpCint.x
 
-    m.model_result = unsafe_string(ccall((:ctx_getmodelstattxt, jamsd_libname), Cstring, (Ptr{context}, Cint), m.jamsd_ctx_dest, m.model_result_num))
+    m.model_result = unsafe_string(ccall((:ctx_getmodelstattxt, libjamsd), Cstring, (Ptr{context}, Cint), m.jamsd_ctx_dest, m.model_result_num))
 
     # GAMS already uses an 1-indices
     solver_code = solver_stat[m.solve_result_num]
@@ -776,7 +784,7 @@ function report_results_common(m::JAMSDMathProgModel)
 
 function report_results(m::JAMSDMathProgModel)
     # TODO(Xhub) fix this hack
-    res = ccall((:model_eval_eqns, jamsd_libname), Cint, (Ptr{context}, Ptr{context}), m.jamsd_ctx, m.jamsd_ctx_dest)
+    res = ccall((:model_eval_eqns, libjamsd), Cint, (Ptr{context}, Ptr{context}), m.jamsd_ctx, m.jamsd_ctx_dest)
     res != 0 && error("JAMSD: error code $res")
 
     # Next, read for the variable values

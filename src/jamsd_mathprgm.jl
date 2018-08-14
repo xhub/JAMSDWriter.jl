@@ -7,9 +7,9 @@ function jamsd_set_modeltype(m::JAMSDMathProgModel, idx)
              m.model_type = minlp
         end
     end
-    res = ccall((:ctx_setmodeltype, jamsd_libname), Cint, (Ptr{context}, Cint), m.jamsd_ctx, m.model_type)
+    res = ccall((:ctx_setmodeltype, libjamsd), Cint, (Ptr{context}, Cint), m.jamsd_ctx, m.model_type)
     res != 0 && error("return code $res from JAMSD")
-    res = ccall((:ctx_setobjsense, jamsd_libname), Cint, (Ptr{context}, Cint), m.jamsd_ctx, sense_to_jamsd[m.sense])
+    res = ccall((:ctx_setobjsense, libjamsd), Cint, (Ptr{context}, Cint), m.jamsd_ctx, sense_to_jamsd[m.sense])
     res != 0 && error("return code $res from JAMSD")
 end
 
