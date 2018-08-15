@@ -21,7 +21,7 @@ branches:
 #  - C:\projects\windows_x64_64.exe -> appveyor.yml
 #  - C:\projects\gams ->appveyor.yml
 
- environment:
+environment:
     PATH: 'C:\projects\gams;%PATH%'
 
 notifications:
