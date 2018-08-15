@@ -1,3 +1,7 @@
+if VERSION < v"0.7"
+    Cvoid = Void
+end
+
 function jamsd_set_modeltype(m::JAMSDMathProgModel)
     discrete = any((m.vartypes .== :Int) + (m.vartypes .== :Bin) .> 0)
     if discrete
@@ -37,7 +41,7 @@ function jamsd_solve(ctx::Ptr{context}, ctx_dest::Ptr{context}, solver_name::Str
         res = ccall((:empinfo_solve, libjamsd), Cint, (Ptr{empinfo},), emp)
         return res
     else
-        res = ccall((:model_compress, libjamsd), Cint, (Ptr{context}, Ptr{context}, Ptr{empinfo}, Ptr{Void}), ctx, ctx_dest, emp, C_NULL)
+        res = ccall((:model_compress, libjamsd), Cint, (Ptr{context}, Ptr{context}, Ptr{empinfo}, Ptr{Cvoid}), ctx, ctx_dest, emp, C_NULL)
         res != 0 && error("return code $res from JAMSD")
         res = ccall((:ctx_exportmodel, libjamsd), Cint, (Ptr{context}, Ptr{context}), ctx, ctx_dest)
         res != 0 && error("return code $res from JAMSD")
@@ -111,6 +115,7 @@ function jamsd_init_gams_solverdata()
     gms_file = joinpath(solverdata_dir, "dummy.gms")
 
     mktempdir(solverdata_dir) do substr
+        # use run(`gams $gms_file scrdir=$substr lo=0 curdir=$substr`) ?
         run(`gams $gms_file scrdir=$substr lo=0`)
 
         open(gamscntr, "w") do out_gamscntr

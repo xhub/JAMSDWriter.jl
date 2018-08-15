@@ -1,10 +1,18 @@
 __precompile__()
 module JAMSDWriter
 
-using MathProgBase
-importall MathProgBase.SolverInterface
+import MathProgBase
+const MPB = MathProgBase
+#importall MathProgBase.SolverInterface
 
-export JAMSDSolver, getsolvername, getsolveresult, getsolveresultnum, getsolvemessage, getsolveexitcode
+if VERSION >= v"0.7"
+    # quickfix for Nullable
+    using Nullables
+
+    using SparseArrays
+end
+
+export JAMSDSolver, getsolvername, getsolveresult, getsolveresultnum, getsolvemessage, getsolveexitcode, LinearQuadraticModel
 
 # Load in `deps.jl`, complaining if it does not exist
 const depsjl_path = joinpath(dirname(@__FILE__), "..", "deps", "deps.jl")
@@ -65,7 +73,7 @@ const model_stat = [
    :InfeasibleNoSolution
 ]
 
-type JAMSDSolver <: AbstractMathProgSolver
+mutable struct JAMSDSolver <: MPB.AbstractMathProgSolver
     solver_name::String
     options::Dict{String,Any}
     emp::Nullable{Function}
@@ -97,7 +105,7 @@ end
 
 getsolvername(s::JAMSDSolver) = basename(s.solver_name)
 
-type JAMSDMathProgModel <: AbstractMathProgModel
+mutable struct JAMSDMathProgModel <: MPB.AbstractMathProgModel
     options::Dict{String, Any}
 
     solver_name::String
@@ -160,7 +168,7 @@ type JAMSDMathProgModel <: AbstractMathProgModel
     emp::Nullable{Function}
 
 
-    d::Nullable{AbstractNLPEvaluator}
+    d::Nullable{MPB.AbstractNLPEvaluator}
 
     jamsd_ctx::Ptr{context}
     jamsd_ctx_dest::Ptr{context}
@@ -211,7 +219,7 @@ type JAMSDMathProgModel <: AbstractMathProgModel
             (),
             0,
             emp,
-            Nullable{AbstractNLPEvaluator}(),
+            Nullable{MPB.AbstractNLPEvaluator}(),
             Ptr{context}(C_NULL),
             Ptr{context}(C_NULL),
             Ptr{jamsd_options}(C_NULL),
@@ -221,44 +229,47 @@ type JAMSDMathProgModel <: AbstractMathProgModel
     end
 end
 
-type JAMSDLinearQuadraticModel <: AbstractLinearQuadraticModel
+struct JAMSDLinearQuadraticModel <: MPB.AbstractLinearQuadraticModel
     inner::JAMSDMathProgModel
 end
-type JAMSDNonlinearModel <: AbstractNonlinearModel
+
+struct JAMSDNonlinearModel <: MPB.AbstractNonlinearModel
     inner::JAMSDMathProgModel
 end
-type JAMSDConicModel <: AbstractNonlinearModel
+
+struct JAMSDConicModel <: MPB.AbstractNonlinearModel
     inner::JAMSDMathProgModel
 end
 
 include("jamsd_write.jl")
 
-NonlinearModel(s::JAMSDSolver) = JAMSDNonlinearModel(
+MPB.NonlinearModel(s::JAMSDSolver) = JAMSDNonlinearModel(
     JAMSDMathProgModel(s.solver_name, s.options, nlp, s.emp)
 )
 
-LinearQuadraticModel(s::JAMSDSolver) = JAMSDLinearQuadraticModel(
+MPB.LinearQuadraticModel(s::JAMSDSolver) = JAMSDLinearQuadraticModel(
     JAMSDMathProgModel(s.solver_name, s.options, qcp, s.emp)
 )
 
-function ConicModel(s::JAMSDSolver)
+function MPB.ConicModel(s::JAMSDSolver)
     error("ConicModel is not yet supported")
 end
 
-function loadproblem!(outer::JAMSDNonlinearModel, nvar::Integer, ncon::Integer,
+function MPB.loadproblem!(outer::JAMSDNonlinearModel, nvar::Integer, ncon::Integer,
                       x_l, x_u, g_l, g_u, sense::Symbol,
-                      d::AbstractNLPEvaluator)
+                      d::MPB.AbstractNLPEvaluator)
     m = outer.inner
 
     m.nvar, m.ncon = nvar, ncon
     loadcommon!(m, x_l, x_u, g_l, g_u, sense)
 
     m.d = d
-    initialize(m.d.value, [:ExprGraph])
+
+    MPB.initialize(m.d.value, [:ExprGraph])
 
     # Process constraints
     m.constrs = map(1:m.ncon) do i
-        c = constr_expr(m.d.value, i)
+        c = MPB.constr_expr(m.d.value, i)
 
         # Remove relations and bounds from constraint expressions
         if length(c.args) == 3
@@ -308,7 +319,8 @@ function loadproblem!(outer::JAMSDNonlinearModel, nvar::Integer, ncon::Integer,
     end
 
     # Process objective
-    m.obj = obj_expr(m.d.value)
+    m.obj = MPB.obj_expr(m.d.value)
+
     if length(m.obj.args) < 2
         m.obj = 0
     else
@@ -324,7 +336,7 @@ function loadproblem!(outer::JAMSDNonlinearModel, nvar::Integer, ncon::Integer,
     m
 end
 
-function loadproblem!(outer::JAMSDLinearQuadraticModel, A::AbstractMatrix,
+function MPB.loadproblem!(outer::JAMSDLinearQuadraticModel, A::AbstractMatrix,
                       x_l, x_u, c, g_l, g_u, sense)
     m = outer.inner
     m.ncon, m.nvar = size(A)
@@ -416,12 +428,12 @@ end
 
 setwarmstart!(m::JAMSDMathProgModel, v::Vector{Float64}) = m.x_0 = v
 
-function addquadconstr!(m::JAMSDLinearQuadraticModel, linearidx, linearval, quadrowidx, quadcolidx, quadval, sense, rhs)
+function MPB.addquadconstr!(m::JAMSDLinearQuadraticModel, linearidx, linearval, quadrowidx, quadcolidx, quadval, sense, rhs)
    # we have to do a little translation of the sense here ...
    push!(m.inner.quad_equs, tuple(linearidx,linearval,quadrowidx,quadcolidx,quadval, quad_relation_sense[sense], rhs))
 end
 
-function setquadobj!(m::JAMSDLinearQuadraticModel, rowidx, colidx, quadval)
+function MPB.setquadobj!(m::JAMSDLinearQuadraticModel, rowidx, colidx, quadval)
    m.inner.quad_obj = tuple(rowidx, colidx, quadval)
 end
 
@@ -533,10 +545,10 @@ function getreducedcosts(m::JAMSDMathProgModel)
     return x
 end
 
-getreducedcosts(nlpm::JAMSDNonlinearModel) = getreducedcosts(nlpm.inner)
-getreducedcosts(quadm::JAMSDLinearQuadraticModel) = getreducedcosts(quadm.inner)
-getconstrduals(nlpm::JAMSDNonlinearModel) = getconstrduals(nlpm.inner)
-getconstrduals(quadm::JAMSDLinearQuadraticModel) = getconstrduals(quadm.inner)
+MPB.getreducedcosts(nlpm::JAMSDNonlinearModel) = getreducedcosts(nlpm.inner)
+MPB.getreducedcosts(quadm::JAMSDLinearQuadraticModel) = getreducedcosts(quadm.inner)
+MPB.getconstrduals(nlpm::JAMSDNonlinearModel) = getconstrduals(nlpm.inner)
+MPB.getconstrduals(quadm::JAMSDLinearQuadraticModel) = getconstrduals(quadm.inner)
 
 function process_expression!(nonlin_expr::Expr, lin_expr::Dict{Int, Float64},
                              varlinearities::Vector{Symbol})
@@ -797,7 +809,8 @@ function report_results(m::JAMSDMathProgModel)
             # Can fail due to unsupported functions so fallback to eval
             try
                 m.objval = eval_f(m.d.value, m.solution)
-                return
+            catch
+                println("Error: could not evaluate the objective function")
             end
         end
 
@@ -834,7 +847,7 @@ function substitute_vars!(c::Expr, x::Array{Float64})
                 c.args[1] = :+
             end
         end
-        map!(arg -> substitute_vars!(arg, x), c.args)
+        map!(arg -> substitute_vars!(arg, x), c.args, c.args)
     end
     c
 end
@@ -858,13 +871,18 @@ end
 
 
 # Wrapper functions
-for f in [:getvartype,:getsense,:optimize!,:status,:getsolution,:getobjval,:numvar,:numconstr,:get_solve_result,:get_solve_result_num,:get_solve_message,:get_solve_exitcode,:getsolvetime]
+for f in [:getvartype,:getsense,:optimize!,:status,:getsolution,:getobjval,:numvar,:numconstr,:getsolvetime]
+    @eval MPB.$f(m::JAMSDNonlinearModel) = $f(m.inner)
+    @eval MPB.$f(m::JAMSDLinearQuadraticModel) = $f(m.inner)
+end
+
+for f in [:get_solve_result,:get_solve_result_num,:get_solve_message,:get_solve_exitcode]
     @eval $f(m::JAMSDNonlinearModel) = $f(m.inner)
     @eval $f(m::JAMSDLinearQuadraticModel) = $f(m.inner)
 end
 for f in [:setvartype!,:setsense!,:setwarmstart!]
-    @eval $f(m::JAMSDNonlinearModel, x) = $f(m.inner, x)
-    @eval $f(m::JAMSDLinearQuadraticModel, x) = $f(m.inner, x)
+    @eval MPB.$f(m::JAMSDNonlinearModel, x) = $f(m.inner, x)
+    @eval MPB.$f(m::JAMSDLinearQuadraticModel, x) = $f(m.inner, x)
 end
 
 # Utility method for deleting any leftover debug files
@@ -900,6 +918,10 @@ function jamsd_options_set(opt::Dict{String,Any})
     end
 
     return jopt
+end
+
+function jamsd_setemp!(m::JAMSDSolver, emp)
+   m.emp = emp
 end
 
 end

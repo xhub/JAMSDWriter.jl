@@ -43,6 +43,7 @@ end
 # TODO with latest Julia
 if VERSION < v"0.7"
 	iswin = is_windows()
+	Cvoid = Void
 else
 	iswin = Sys.iswindows()
 end
@@ -58,9 +59,9 @@ end
 
 function ctx_create(n, m)
 	ctx = ccall((:ctx_alloc, libjamsd), Ptr{context}, (Cuint,), 2)
-	res = ccall((:model_reserve_eqns, libjamsd), Cint, (Ptr{context}, Ptr{Void}, Cuint), ctx, C_NULL, m);
+	res = ccall((:model_reserve_eqns, libjamsd), Cint, (Ptr{context}, Ptr{Cvoid}, Cuint), ctx, C_NULL, m);
 	res != 0 && error("return code $res from JAMSD")
-	res = ccall((:model_reserve_vars, libjamsd), Cint, (Ptr{context}, Ptr{Void}, Cuint), ctx, C_NULL, n);
+	res = ccall((:model_reserve_vars, libjamsd), Cint, (Ptr{context}, Ptr{Cvoid}, Cuint), ctx, C_NULL, n);
 	res != 0 && error("return code $res from JAMSD")
 	res = ccall((:ctx_resize, libjamsd), Cint, (Ptr{context}, Cuint, Cuint), ctx, n, m)
 	res != 0 && error("return code $res from JAMSD")
@@ -94,7 +95,7 @@ function hack_exportempinfo(ctx, ctx_mtr, emp)
 end
 
 function hack_solver_log()
-	ccall((:hack_solver_log, libjamsd), Void, ())
+	ccall((:hack_solver_log, libjamsd), Cvoid, ())
 end
 
 function ctx_setvarlone(ctx::Ptr{context}, idx, val::Cdouble)
@@ -144,7 +145,7 @@ function emp_create_equil(max_mp)
 end
 
 function emp_delete(emp::Ptr{empinfo})
-	return ccall((:hack_empinfo_dealloc, libjamsd), Void, (Ptr{empinfo},), emp)
+	return ccall((:hack_empinfo_dealloc, libjamsd), Cvoid, (Ptr{empinfo},), emp)
 end
 
 function emp_add_mp_mp(mp_parent, mp)
@@ -375,12 +376,12 @@ function jamsd_avar(size, indices)
 end
 
 function jamsd_avar_free(avar::Ptr{abstract_var})
-	return ccall((:avar_free, libjamsd), Void, (Ptr{abstract_var},), avar)
+	return ccall((:avar_free, libjamsd), Cvoid, (Ptr{abstract_var},), avar)
 end
 
 function jamsd_decl_eqn(ctx::Ptr{context}, idx)
 	minn = Ref{Cint}(-1)
-	res = ccall((:model_add_eqn_empty, libjamsd), Cint, (Ptr{context}, Ref{Cint}, Ptr{Void}, Cint), ctx, minn, C_NULL, 0)
+	res = ccall((:model_add_eqn_empty, libjamsd), Cint, (Ptr{context}, Ref{Cint}, Ptr{Cvoid}, Cint), ctx, minn, C_NULL, 0)
 	res != 0 && error("return code $res from JAMSD")
 end
 
@@ -409,7 +410,7 @@ function jamsd_mat_coo(ridx, cidx, vals)
 end
 
 function jamsd_mat_free(mat)
-	ccall((:empmat_free, libjamsd), Void, (Ptr{jamsd_sp_matrix},), mat)
+	ccall((:empmat_free, libjamsd), Cvoid, (Ptr{jamsd_sp_matrix},), mat)
 end
 
 function jamsd_set_objeqn(ctx::Ptr{context}, idx)
@@ -445,7 +446,7 @@ function jamsd_options_alloc()
 end
 
 function jamsd_options_dealloc(o::Ptr{jamsd_options})
-	ccall((:hack_options_dealloc, libjamsd), Void, (Ptr{jamsd_options},), o)
+	ccall((:hack_options_dealloc, libjamsd), Cvoid, (Ptr{jamsd_options},), o)
 end
 
 function jamsd_option_set(opt::Ptr{jamsd_options}, k::String, v::Bool)
@@ -469,5 +470,5 @@ function jamsd_option_set(opt::Ptr{jamsd_options}, k::String, v::String)
 end
 
 function ctx_dealloc(o::Ptr{context})
-	ccall((:hack_ctx_dealloc,  libjamsd), Void, (Ptr{context},), o)
+	ccall((:hack_ctx_dealloc,  libjamsd), Cvoid, (Ptr{context},), o)
 end

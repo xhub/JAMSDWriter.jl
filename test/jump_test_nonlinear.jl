@@ -12,17 +12,38 @@
 #############################################################################
 using JuMP
 using Base.Test
+using MathProgBase
 
 # If solvers not loaded, load them (i.e running just these tests)
 !isdefined(:nlp_solvers) && error("You must declare the solvers to test")
 
-type DummyNLPSolver <: MathProgBase.AbstractMathProgSolver
+mutable struct DummyNLPSolver <: MathProgBase.AbstractMathProgSolver
 end
-type DummyNLPModel <: MathProgBase.AbstractNonlinearModel
+mutable struct DummyNLPModel <: MathProgBase.AbstractNonlinearModel
 end
 
 
 @testset "Nonlinear" begin
+
+    @testset "getvalue on arrays" begin
+        m = Model()
+        @variable(m, x, start = π/2)
+        @NLexpression(m, f1, sin(x))
+        @NLexpression(m, f2, sin(2x))
+        @NLexpression(m, f3[i=1:2], sin(i*x))
+
+        @test isapprox(getvalue(f1), 1, atol=1e-5)
+        @test isapprox(getvalue(f2), 0, atol=1e-5)
+
+        @test getvalue([f1, f2]) == getvalue(f3)
+
+        v = [1.0, 2.0]
+        @NLparameter(m, vparam[i=1:2] == v[i])
+        @test getvalue(vparam) == v
+        v[1] = 3.0
+        setvalue(vparam, v)
+        @test getvalue(vparam) == v
+    end
 
     @testset "HS071 solves correctly with $nlp_solver" for nlp_solver in nlp_solvers
         # hs071
@@ -657,6 +678,25 @@ end
         @variable(m, c, start = 3)
 
         @NLobjective(m, Min, a*b + c^2)
+        @constraint(m, c*b <= 1)
+        @NLconstraint(m, a^2/2 <= 1)
+        d = JuMP.NLPEvaluator(m)
+        MathProgBase.initialize(d, [:HessVec])
+        h = ones(3) # test that input values are overwritten
+        v = [2.4,3.5,1.2]
+        MathProgBase.eval_hesslag_prod(d, h, m.colVal, v, 1.0, [2.0,3.0])
+        correct = [3.0 1.0 0.0; 1.0 0.0 2.0; 0.0 2.0 2.0]*v
+        @test isapprox(h, correct)
+    end
+
+    @testset "Hess-vec through MPB with subexpressions" begin
+        m = Model()
+        @variable(m, a, start = 1)
+        @variable(m, b, start = 2)
+        @variable(m, c, start = 3)
+
+        @NLexpression(m, ab, a*b)
+        @NLobjective(m, Min, ab + c^2)
         @constraint(m, c*b <= 1)
         @NLconstraint(m, a^2/2 <= 1)
         d = JuMP.NLPEvaluator(m)
