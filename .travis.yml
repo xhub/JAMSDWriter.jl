@@ -7,12 +7,12 @@ os:
 julia:
   - 0.6
   - 0.7
-  - 1.0
+#  - 1.0
 
 matrix:
     allow_failures:
         - julia: 0.7
-        - julia: 1.0
+#        - julia: 1.0
 
 notifications:
   email: false
@@ -33,6 +33,7 @@ before_script: # homebrew for mac
   - wget https://d37drm4t2jghv5.cloudfront.net/distributions/25.1.2/linux/linux_x64_64_sfx.exe -O gams-install.exe
   - chmod +x gams-install.exe
   - ./gams-install.exe
+  - cd -
 
 env:
   - PATH: $PATH:$HOME/gams25.1_linux_x64_64_sfx
