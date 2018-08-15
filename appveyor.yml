@@ -45,7 +45,7 @@ install:
   - ps: (new-object net.webclient).DownloadFile(
       "https://d37drm4t2jghv5.cloudfront.net/distributions/25.1.2/windows/windows_x64_64.exe",
       "C:\projects\windows_x64_64.exe")
-  - C:\projects\windows_x64_64.exe /S /D=C:\projects\gams
+  - C:\projects\windows_x64_64.exe /VERYSILENT /SP- /SUPPESSMSGBOXES /DIR="C:\projects\gams"
 
 build_script:
 # Need to convert from shallow to complete for Pkg.clone to work

@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.com/xhub/JAMSDWriter.jl.svg?branch=master)](https://travis-ci.com/xhub/JAMSDWriter.jl)
+[![Build status](https://ci.appveyor.com/api/projects/status/w4wrpfi0x2k8a7ih?svg=true)](https://ci.appveyor.com/project/xhub/jamsdwriter-jl)
 [![Coverage Status](https://coveralls.io/repos/github/xhub/JAMSDWriter.jl/badge.svg?branch=master)](https://coveralls.io/github/xhub/JAMSDWriter.jl?branch=master)
 [![codecov](https://codecov.io/gh/xhub/JAMSDWriter.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/xhub/JAMSDWriter.jl)
 
