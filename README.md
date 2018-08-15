@@ -1,3 +1,8 @@
+[![Build Status](https://travis-ci.com/xhub/JAMSDWriter.jl.svg?branch=master)](https://travis-ci.com/xhub/JAMSDWriter.jl)
+[![Coverage Status](https://coveralls.io/repos/github/xhub/JAMSDWriter.jl/badge.svg?branch=master)](https://coveralls.io/github/xhub/JAMSDWriter.jl?branch=master)
+[![codecov](https://codecov.io/gh/xhub/JAMSDWriter.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/xhub/JAMSDWriter.jl)
+
+
 # JAMSDWriter
 
 This package enables to export a MathProgBase model to the JAMSD reformulation solver.

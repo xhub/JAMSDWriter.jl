@@ -32,7 +32,7 @@ before_script: # homebrew for mac
   - cd $HOME
   - wget https://d37drm4t2jghv5.cloudfront.net/distributions/25.1.2/linux/linux_x64_64_sfx.exe -O gams-install.exe
   - chmod +x gams-install.exe
-  - ./gams-install.exe
+  - ./gams-install.exe > /dev/null
   - cd -
 
 env:

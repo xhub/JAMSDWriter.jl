@@ -43,7 +43,7 @@ install:
   - C:\projects\julia-binary.exe /S /D=C:\projects\julia
 
   - ps: (new-object net.webclient).DownloadFile(
-      https://d37drm4t2jghv5.cloudfront.net/distributions/25.1.2/windows/windows_x64_64.exe,
+      "https://d37drm4t2jghv5.cloudfront.net/distributions/25.1.2/windows/windows_x64_64.exe",
       "C:\projects\windows_x64_64.exe")
   - C:\projects\windows_x64_64.exe /S /D=C:\projects\gams
 
