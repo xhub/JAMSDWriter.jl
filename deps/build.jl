@@ -11,7 +11,7 @@ bin_prefix = "https://nullptr.fr/lib"
 if VERSION < v"0.7"
     iswin   = is_windows()
     islinux = is_linux()
-    ismac   = is_apple()
+    isapple = is_apple()
 else
     iswin   = Sys.iswindows()
     islinux = Sys.islinux()
@@ -35,7 +35,7 @@ if islinux
 end
 
 if isapple
-    if Sys.ARCH == x86_64
+    if Sys.ARCH == :x86_64
         provides(Binaries, URI("$bin_prefix-macosx/libjamsd.tar.xz"), libjamsd, os = :Darwin)
     end
 end
