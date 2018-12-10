@@ -161,7 +161,7 @@ function jamsd_quad(ctx, m::JAMSDMathProgModel, idx, equ, offset, isObj::Bool=fa
         @assert length(qvalU) == length(rowidxU)
         @assert length(qvalU) == length(colidxU)
         mat = jamsd_mat_coo(rowidxU, colidxU, qvalU)
-        midxS = union(IntSet(rowidx), IntSet(colidx))
+        midxS = union(BitSet(rowidx), BitSet(colidx))
         avar = jamsd_avar(length(midxS), collect(i-1 for i in midxS))
         if isObj
             c = 1.

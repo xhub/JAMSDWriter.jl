@@ -5,11 +5,12 @@ import MathProgBase
 const MPB = MathProgBase
 #importall MathProgBase.SolverInterface
 
+using Compat
+using Compat.LinearAlgebra, Compat.SparseArrays
+
 if VERSION >= v"0.7"
     # quickfix for Nullable
     using Nullables
-
-    using SparseArrays
 end
 
 export JAMSDSolver, getsolvername, getsolveresult, getsolveresultnum, getsolvemessage, getsolveexitcode, LinearQuadraticModel
@@ -224,7 +225,7 @@ mutable struct JAMSDMathProgModel <: MPB.AbstractMathProgModel
             Ptr{context}(C_NULL),
             Ptr{jamsd_options}(C_NULL),
             "")
-        finalizer(o, jamsd_cleanup)
+        @compat finalizer(jamsd_cleanup, o)
         o
     end
 end
@@ -403,7 +404,7 @@ function loadcommon!(m::JAMSDMathProgModel, x_l, x_u, g_l, g_u, sense)
     m.lin_constrs = [Dict{Int, Float64}() for _ in 1:m.ncon]
     m.j_counts = zeros(Int, m.nvar)
 
-    m.r_codes = Array{Int}(m.ncon)
+    m.r_codes = Vector{Int}(undef, m.ncon)
 
     m.varlinearities_con = fill(:Lin, m.nvar)
     m.varlinearities_obj = fill(:Lin, m.nvar)
@@ -485,7 +486,7 @@ function optimize!(m::JAMSDMathProgModel)
     else
         println("JAMSD: solver failed with status $(m.solve_exitcode)")
         m.status = :Error
-        m.solution = fill(NaN,m.nvar)
+        m.solution = fill(NaN, m.nvar)
         m.solve_result = "failure"
         m.solve_result_num = 999
     end
@@ -495,7 +496,7 @@ function getconstrduals(m::JAMSDMathProgModel)
 
     ctx = m.jamsd_ctx
 
-    x = Vector{Cdouble}(numconstr(m))
+    x = fill(NaN, numconstr(m))
 
    if has_objective(m)
         offset = m.offset
@@ -516,7 +517,7 @@ function getquadconstrduals(quadm::JAMSDLinearQuadraticModel)
     m = quadm.inner
     ctx = m.jamsd_ctx
 
-    x = Vector{Cdouble}(numconstr(m))
+    x = fill(NaN, numconstr(m))
 
     if has_objective(m)
         offset = m.offset
@@ -536,7 +537,7 @@ function getreducedcosts(m::JAMSDMathProgModel)
 
     ctx = m.jamsd_ctx
 
-    x = Vector{Cdouble}(numvar(m))
+    x = fill(NaN, numvar(m))
 
     for idx in 1:numvar(m)
        x[idx] = ctx_getvarmult(ctx, idx-1)
@@ -677,7 +678,7 @@ function make_con_index!(m::JAMSDMathProgModel)
     end
 
     if length(m.quad_idx) == 0
-       m.quad_idx = Dict(enumerate(Vector{Int}(range(1+m.ncon, length(m.quad_equs)))))
+       m.quad_idx = Dict(enumerate(Vector{Int}(Compat.range(1+m.ncon, length=length(m.quad_equs)))))
     end
 
     CONFIG[:debug] && println("DEBUG: make_con_index: nonquad_idx: $(m.nonquad_idx)\n quad_idx: $(m.quad_idx)")
@@ -810,7 +811,7 @@ function report_results(m::JAMSDMathProgModel)
             try
                 m.objval = eval_f(m.d.value, m.solution)
             catch
-                println("Error: could not evaluate the objective function")
+                CONFIG[:debug] && println("Error: could not evaluate the objective function")
             end
         end
 
@@ -864,7 +865,7 @@ function evaluate_quad(rowidx, colidx, qvals, x::Array{Float64})
    n = length(x)
    mat = sparse(rowidx, colidx, qvals, n, n)
    # This is soooo ugly --xhub
-   Q = (mat + mat') - diagm(diag(mat))
+   Q = (mat + mat') - Diagonal(diag(mat))
    total = .5*x'*Q*x
    return total
 end

@@ -1,8 +1,8 @@
-using JuMP, Base.Test, JAMSDWriter
+using JuMP, Compat.Test, JAMSDWriter
 
 # Example testing basic use of NLExpr with JAMSDWriter.jl
 
-if !isdefined(:solver); solver = JAMSDWriter.JAMSDSolver(); end
+if !isdef(:solver); solver = JAMSDWriter.JAMSDSolver(); end
 
 @testset "example: jump_nlexpr" begin
     m = Model(solver=solver)

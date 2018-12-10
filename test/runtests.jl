@@ -1,5 +1,17 @@
-using JAMSDWriter, Compat, JuMP
-using Base.Test
+using JAMSDWriter, Compat, JuMP, MathProgBase
+using Compat.Test, Compat.LinearAlgebra, Compat.SparseArrays
+
+# This doesn't appears to be in Compat?
+@static if VERSION >= v"0.7.0"
+    function isdef(symbol)
+        return isdefined(@__MODULE__, symbol)
+    end
+else
+    function isdef(symbol)
+        return isdefined(symbol)
+    end
+end
+
 
 @testset "Basic Functionality" begin
     include("nl_convert.jl")
@@ -78,7 +90,11 @@ append!(convex_nlp_solvers, nlp_solvers)
 
 push!(minlp_solvers, JAMSDSolver())
 
-include(Pkg.dir("JuMP","test","qcqpmodel.jl"))
+if VERSION < v"0.7"
+    include(Pkg.dir("JuMP","test","qcqpmodel.jl"))
+else
+    include(joinpath(dirname(pathof(JuMP)), "..", "test", "qcqpmodel.jl"))
+end
 
 #
 ipt = false

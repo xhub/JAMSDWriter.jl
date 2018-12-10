@@ -371,7 +371,7 @@ function jamsd_add_pos_var(ctx::Ptr{context}, nb)
 end
 
 function jamsd_avar(size, indices)
-	indicesC = Array{Cint, 1}(indices)
+	indicesC = Vector{Cint}(indices)
 	return ccall((:avar_alloc, libjamsd), Ptr{abstract_var}, (Cuint, Ptr{Cint}), size, indicesC)
 end
 
@@ -401,8 +401,8 @@ end
 
 function jamsd_mat_coo(ridx, cidx, vals)
 	# beaware of dragons! --xhub
-	ridxC = Array{Cint, 1}(ridx)
-	cidxC = Array{Cint, 1}(cidx)
+	ridxC = Vector{Cint}(ridx)
+	cidxC = Vector{Cint}(cidx)
 	# m and n are not really needed? --xhub
 	mat = ccall((:empmat_triplet, libjamsd), Ptr{jamsd_sp_matrix}, (Cuint, Cuint, Cuint, Ptr{Cint}, Ptr{Cint}, Ref{Cdouble}),
 							0, 0, length(vals), ridxC, cidxC, vals)

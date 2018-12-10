@@ -71,13 +71,13 @@ function jamsd_setup_gams()
         error("Could not create template GAMS control file! Make sure that GAMS is properly installed and available via the system path")
     end
 
-    gamscntr_template = readstring(gamscntr_template_file)
+    gamscntr_template = read(gamscntr_template_file, String)
 
     gams_dir = mktempdir(pwd())
     cur_dir = gams_dir
 
     open(joinpath(gams_dir, "gamscntr.dat"), "w") do gamscntr_file
-        println(gamscntr_file, replace(gamscntr_template, r"@@SUB@@", cur_dir))
+        println(gamscntr_file, replace(gamscntr_template, r"@@SUB@@" => cur_dir))
     end
 
     # we need an empty Matrixfile
@@ -119,9 +119,9 @@ function jamsd_init_gams_solverdata()
         run(`gams $gms_file scrdir=$substr lo=0`)
 
         open(gamscntr, "w") do out_gamscntr
-            input = readstring(joinpath(substr, "gamscntr.dat"))
-            input = replace(input, pwd(), "@@SUB@@")
-            println(out_gamscntr, replace(input, substr, "@@SUB@@"))
+            input = read(joinpath(substr, "gamscntr.dat"), String)
+            input = replace(input, pwd() => "@@SUB@@")
+            println(out_gamscntr, replace(input, substr => "@@SUB@@"))
         end
     end
 end

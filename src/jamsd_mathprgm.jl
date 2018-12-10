@@ -48,7 +48,8 @@ function jamsd_declare_mathprgm(mp, ctx::Ptr{context}, emp::Ptr{empinfo})
 
         emp_mp_start(jamsd_mp, typ)
         VIvars = keys(mp.matching)
-        equ_seen = Vector{Int}(length(mp.equs))
+        # TODO this should be an array of booleans ... --xhub
+        equ_seen = fill(-1, length(mp.equs))
         sidx = 1
         for vidx in mp.vars
             if vidx in VIvars

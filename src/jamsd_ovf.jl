@@ -1,7 +1,7 @@
 function jamsd_ovf(emp, ovf)
     # 0-based vs 1-based
     ovf_vidx = ovf.vidx-1
-    argsC = Array{Cint, 1}(ovf.args - 1)
+    argsC = Vector{Cint}(undef, ovf.args - 1)
 
     ovf_def = emp_ovf(emp, ovf.name, ovf_vidx, argsC)
 

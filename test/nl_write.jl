@@ -11,8 +11,7 @@
 #        @fact length(readdir(JAMSDWriter.solverdata_dir)) --> 1
 #    end
 
-    solver = JAMSDWriter.JAMSDSolver()
-    m = Model(solver=solver)
+    m = Model(solver=JAMSDWriter.JAMSDSolver())
     @variable(m, x >= 0)
     @objective(m, Min, x)
     solve(m)

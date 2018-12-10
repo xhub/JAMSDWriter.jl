@@ -10,12 +10,10 @@
 # test/nonlinear.jl
 # Test general nonlinear
 #############################################################################
-using JuMP
-using Base.Test
-using MathProgBase
-
+using Compat, Compat.LinearAlgebra, Compat.SparseArrays, Compat.Test
+using MathProgBase, JuMP
 # If solvers not loaded, load them (i.e running just these tests)
-!isdefined(:nlp_solvers) && error("You must declare the solvers to test")
+!isdef(:nlp_solvers) && error("You must declare the solvers to test")
 
 mutable struct DummyNLPSolver <: MathProgBase.AbstractMathProgSolver
 end
@@ -106,7 +104,7 @@ end
         @objective(m, Min, t)
         @NLconstraint(m, t >= x[1]*x[4]*(x[1]+x[2]+x[3]) + x[3])
         @NLconstraint(m, x[1]*x[2]*x[3]*x[4] >= 25)
-        @NLconstraint(m, sum(x[i]^2 for i=1:4) == 40)
+        @NLconstraint(m, sum{x[i]^2,i=1:4} == 40)
         status = solve(m)
 
         @test status == :Optimal
@@ -115,9 +113,9 @@ end
     end
 
     @testset "ifelse with $nlp_solver" for nlp_solver in nlp_solvers
-        (contains("$(typeof(nlp_solver))", "OsilSolver") || contains("$(typeof(nlp_solver))", "NLoptSolver") || contains("$(typeof(nlp_solver))", "BaronSolver")) && continue
+        (occursin("OsilSolver", "$(typeof(nlp_solver))") || occursin("NLoptSolver", "$(typeof(nlp_solver))") || occursin("BaronSolver", "$(typeof(nlp_solver))")) && continue
         # XXX baron doesn't support ifelse
-        contains(nlp_solver.solver_name, "baron") && continue
+        occursin("baron", nlp_solver.solver_name) && continue
         m = Model(solver=nlp_solver)
         @variable(m, x, start = 2)
         # minimizer at smooth point, solvers should be okay
@@ -312,7 +310,6 @@ end
     @testset "Maximization objective with $nlp_solver" for nlp_solver in convex_nlp_solvers
         # Solve a simple problem with a maximization objective
         # XXX baron does seem to be able to solve it
-#        contains(nlp_solver.solver_name, "baron") && continue
         m = Model(solver=nlp_solver)
         @variable(m, -2 <= x <= 2); setvalue(x, -1.8)
         @variable(m, -2 <= y <= 2); setvalue(y,  1.5)
@@ -326,7 +323,6 @@ end
 
     @testset "Maximization objective (embedded expressions) with $nlp_solver (simplify = $simplify)" for nlp_solver in convex_nlp_solvers, simplify in [true,false]
         # XXX baron does seem to be able to solve it
-#        contains(nlp_solver.solver_name, "baron") && continue
         m = Model(solver=nlp_solver, simplify_nonlinear_expressions=simplify)
         @variable(m, -2 <= x <= 2); setvalue(x, -1.8)
         @variable(m, -2 <= y <= 2); setvalue(y,  1.5)
@@ -344,8 +340,8 @@ end
 
 
     @testset "Infeasibility detection with $nlp_solver" for nlp_solver in convex_nlp_solvers
-        contains(string(typeof(nlp_solver)),"NLoptSolver") && continue
-        contains(string(typeof(nlp_solver)),"MosekSolver") && continue
+        occursin("NLoptSolver", string(typeof(nlp_solver))) && continue
+        occursin("MosekSolver", string(typeof(nlp_solver))) && continue
         # (Attempt to) solve an infeasible problem
         m = Model(solver=nlp_solver)
         n = 10
@@ -359,7 +355,7 @@ end
 
 
     @testset "Unboundedness detection with $nlp_solver" for nlp_solver in convex_nlp_solvers
-        contains(string(typeof(nlp_solver)),"NLoptSolver") && continue
+        occursin("NLoptSolver", string(typeof(nlp_solver))) && continue
         # (Attempt to) solve an unbounded problem
         m = Model(solver=nlp_solver)
         @variable(m, x >= 0)
@@ -369,7 +365,7 @@ end
     end
 
     @testset "Entropy maximization with $nlp_solver" for nlp_solver in convex_nlp_solvers
-        (contains(nlp_solver.solver_name, "conopt") || contains(nlp_solver.solver_name, "snopt") || nlp_solver.solver_name == "" || nlp_solver.solver_name == "minos") && continue
+        (occursin("conopt", nlp_solver.solver_name) || occursin("snopt", nlp_solver.solver_name) || nlp_solver.solver_name == "" || nlp_solver.solver_name == "minos") && continue
         m = Model(solver=nlp_solver)
         N = 3
         @variable(m, x[1:N] >= 0, start = 1)
@@ -382,11 +378,11 @@ end
     end
 
     @testset "Entropy maximization (reformulation) with $nlp_solver" for nlp_solver in convex_nlp_solvers
-        (contains(nlp_solver.solver_name, "conopt") || contains(nlp_solver.solver_name, "snopt") || nlp_solver.solver_name == "" || nlp_solver.solver_name == "minos") && continue
+        (occursin("conopt", nlp_solver.solver_name) || occursin("snopt", nlp_solver.solver_name) || nlp_solver.solver_name == "" || nlp_solver.solver_name == "minos") && continue
 
         m = Model(solver=nlp_solver)
         idx = [1,2,3,4]
-        @variable(m, x[1:4] >= 0, start = 1)
+        @variable(m, x[idx] >= 0, start = 1)
         @variable(m, z[1:4], start = 0)
         @NLexpression(m, entropy[i=idx], -x[i]*log(x[i]))
         @NLobjective(m, Max, sum(z[i] for i = 1:2) + sum(z[i]/2 for i=3:4))
@@ -464,7 +460,7 @@ end
         @variable(modA, 0 <= r[i=3:6] <= i)
         @NLobjective(modA, Max, ((x + y)/2.0 + 3.0)/3.0 + z + r[3])
         @constraint(modA, cons1, x+y >= 2)
-        @constraint(modA, cons2, sum(r[i] for i=3:5) <= (2 - x)/2.0)
+        @constraint(modA, cons2, sum{r[i],i=3:5} <= (2 - x)/2.0)
         cons3 = @NLconstraint(modA, 7.0*y <= z + r[6]/1.9)
 
         # Solution
@@ -648,7 +644,7 @@ end
         MathProgBase.eval_hesslag(d, V, m.colVal, 1.0, Float64[])
         hess_raw = sparse(I,J,V)
         # Convert from lower triangular
-        hess_sparse = hess_raw + hess_raw' - sparse(diagm(diag(hess_raw)))
+        hess_sparse = hess_raw + hess_raw' - sparse(Diagonal(diag(hess_raw)))
         @test isapprox(hess_sparse, [0.0 1.0 0.0; 1.0 0.0 0.0; 0.0 0.0 2.0])
 
         # make sure we don't get NaNs in this case
@@ -659,7 +655,7 @@ end
         V = zeros(length(I))
         MathProgBase.eval_hesslag(d, V, m.colVal, 1.0, Float64[])
         hess_raw = sparse(I,J,V)
-        hess_sparse = hess_raw + hess_raw' - sparse(diagm(diag(hess_raw)))
+        hess_sparse = hess_raw + hess_raw' - sparse(Diagonal(diag(hess_raw)))
         @test isapprox(hess_sparse, [0.0 1.0 0.0; 1.0 0.0 0.0; 0.0 0.0 6.0])
 
         # Initialize again
@@ -667,7 +663,7 @@ end
         V = zeros(length(I))
         MathProgBase.eval_hesslag(d, V, m.colVal, 1.0, Float64[])
         hess_raw = sparse(I,J,V)
-        hess_sparse = hess_raw + hess_raw' - sparse(diagm(diag(hess_raw)))
+        hess_sparse = hess_raw + hess_raw' - sparse(Diagonal(diag(hess_raw)))
         @test isapprox(hess_sparse, [0.0 1.0 0.0; 1.0 0.0 0.0; 0.0 0.0 6.0])
     end
 

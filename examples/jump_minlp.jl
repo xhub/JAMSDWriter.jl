@@ -1,4 +1,4 @@
-using JuMP, Base.Test, JAMSDWriter
+using JuMP, Compat.Test, JAMSDWriter
 
 ## Solve test problem 1 (Synthesis of processing system) in
  #  M. Duran & I.E. Grossmann, "An outer approximation algorithm for
@@ -24,7 +24,7 @@ using JuMP, Base.Test, JAMSDWriter
  #  The solution is (1.30098, 0, 1, 0, 1, 0).
  ##
 
-if !isdefined(:solver); solver = JAMSDWriter.JAMSDSolver(); end
+if !isdef(:solver); solver = JAMSDWriter.JAMSDSolver(); end
 
 @testset "example: jump_minlp" begin
     m = Model(solver=solver)

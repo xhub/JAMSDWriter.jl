@@ -1,4 +1,4 @@
-using JuMP, Base.Test, JAMSDWriter
+using JuMP, Compat.Test, JAMSDWriter
 
 ## Solve test problem with lots of expressions to prune
  #

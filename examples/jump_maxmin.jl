@@ -1,6 +1,6 @@
-using JuMP, Base.Test, JAMSDWriter
+using JuMP, Compat.Test, JAMSDWriter
 
-if !isdefined(:solver); solver = JAMSDWriter.JAMSDSolver(); end
+if !isdef(:solver); solver = JAMSDWriter.JAMSDSolver(); end
 # Note min and max not implemented in Couenne
 
 ## Solve test problem with simple min functions

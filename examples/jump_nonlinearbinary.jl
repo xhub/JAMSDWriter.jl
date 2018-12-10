@@ -1,4 +1,4 @@
-using JuMP, Base.Test, JAMSDWriter
+using JuMP, Compat.Test, JAMSDWriter
 
 ## Solve test problem with non-linear binary variables
  #
@@ -8,7 +8,7 @@ using JuMP, Base.Test, JAMSDWriter
  #  The solution is (0, 0).
  ##
 
-if !isdefined(:solver_sbb); solver_sbb = JAMSDWriter.JAMSDSolver("sbb"); end
+if !isdef(:solver_sbb); solver_sbb = JAMSDWriter.JAMSDSolver("sbb"); end
 
 @testset "example: jump_nonlinearbinary" begin
     m = Model(solver=solver_sbb)

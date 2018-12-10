@@ -1,8 +1,8 @@
-using JuMP, Base.Test, JAMSDWriter
+using JuMP, Compat.Test, JAMSDWriter
 
 # Example with no objective (#50)
 
-if !isdefined(:solver); solver = JAMSDWriter.JAMSDSolver(); end
+if !isdef(:solver); solver = JAMSDWriter.JAMSDSolver(); end
 
 @testset "example: jump_no_obj" begin
     m = Model(solver=solver)

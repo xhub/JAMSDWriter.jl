@@ -1,4 +1,4 @@
-using JuMP, Base.Test, JAMSDWriter
+using JuMP, Compat.Test, JAMSDWriter
 
 ## Solve test problem with sind and cosd functions
  #
@@ -8,7 +8,7 @@ using JuMP, Base.Test, JAMSDWriter
  #  The optimal objective value is 0
  ##
 
-if !isdefined(:solver); solver = JAMSDWriter.JAMSDSolver(); end
+if !isdef(:solver); solver = JAMSDWriter.JAMSDSolver(); end
 
 @testset "example: jump_nltrig" begin
     m = Model(solver=solver)
