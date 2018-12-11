@@ -40,11 +40,12 @@ env:
 
 ## uncomment the following lines to override the default test script
 script:
-  - julia -e 'Pkg.clone(pwd()); Pkg.build("JAMSDWriter"); Pkg.test("JAMSDWriter"; coverage=true)'
+  - julia -e 'VERSION >= v"0.7" && import Pkg; Pkg.add("Compat")'
+  - julia -e 'using Compat.Pkg; Pkg.clone(pwd()); Pkg.build("JAMSDWriter"); Pkg.test("JAMSDWriter"; coverage=true)'
 
 after_success:
   - echo $TRAVIS_JULIA_VERSION
   # push coverage results to Coveralls
-  - julia -e 'cd(Pkg.dir("JAMSDWriter")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
+  - julia -e 'using Compat.Pkg; cd(Pkg.dir("JAMSDWriter")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
   # push coverage results to Codecov
-  - julia -e 'cd(Pkg.dir("JAMSDWriter")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
+  - julia -e 'using Compat.Pkg; cd(Pkg.dir("JAMSDWriter")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'

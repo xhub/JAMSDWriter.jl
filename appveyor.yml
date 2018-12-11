@@ -65,9 +65,10 @@ install:
 build_script:
 # Need to convert from shallow to complete for Pkg.clone to work
   - IF EXIST .git\shallow (git fetch --unshallow)
-  - C:\projects\julia\bin\julia -e "versioninfo();
+  - C:\projects\julia\bin\julia -e "VERSION >= v\"0.7\" && import Pkg; Pkg.add(\"Compat\")"
+  - C:\projects\julia\bin\julia -e "versioninfo(); using Compat.Pkg;
       Pkg.clone(pwd(), \"JAMSDWriter\"); Pkg.build(\"JAMSDWriter\")"
 
 # We need a valid gams install for now ...
 test_script:
-  - C:\projects\julia\bin\julia -e "Pkg.test(\"JAMSDWriter\")"
+  - C:\projects\julia\bin\julia -e "using Compat.Pkg; Pkg.test(\"JAMSDWriter\")"
